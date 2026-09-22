@@ -68,7 +68,8 @@ export const createUser = async (req: any, res: ExpressRes) => {
       throw new AppError('Invalid organization ID format', 400, 'INVALID_ORG_ID');
     }
 
-    // Enforce limits for Reviewers and Managers
+    // Enforce limits for Reviewers and Managers (REMOVED)
+    /*
     if (organizationId) {
       if (role === 'BUSINESS_UNIT_REVIEWER') {
         const existingReviewer = await User.findOne({
@@ -92,6 +93,7 @@ export const createUser = async (req: any, res: ExpressRes) => {
         }
       }
     }
+    */
 
     // Auto-generate employeeId based on Role (e.g. MEIL-PO-0001)
     const rolePrefixes: Record<string, string> = {
@@ -209,7 +211,8 @@ export const updateUser = async (req: any, res: ExpressRes) => {
       user.status = status;
     }
 
-    // Enforce limits for Reviewers and Managers
+    // Enforce limits for Reviewers and Managers (REMOVED)
+    /*
     if (user.organizationId && user.status !== 'DISABLED') {
       if (user.role === 'BUSINESS_UNIT_REVIEWER') {
         const existingReviewer = await User.findOne({
@@ -235,6 +238,7 @@ export const updateUser = async (req: any, res: ExpressRes) => {
         }
       }
     }
+    */
 
     await user.save();
 

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "MEIL ESG360 Root Scripts",
   "scripts": {
+    "postinstall": "npm run install:all",
     "install:all": "npm install --prefix server && npm install --prefix client",
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client -- --open\"",
     "build": "npm run build --prefix server && npm run build --prefix client"
