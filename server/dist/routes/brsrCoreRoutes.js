@@ -1,0 +1,13 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const brsrCoreController_1 = require("../controllers/brsrCoreController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = express_1.default.Router();
+router.use(authMiddleware_1.protect);
+router.use((0, authMiddleware_1.authorize)('GROUP_ESG_TEAM', 'ADMIN', 'AUDITOR')); // BRSR Core is typically group-level
+router.get('/dashboard', brsrCoreController_1.getBRSRCoreDashboard);
+exports.default = router;
