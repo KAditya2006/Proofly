@@ -48,15 +48,7 @@ import ImportBatches from './pages/ImportBatches';
 import ServiceAccounts from './pages/ServiceAccounts';
 import { UserManagement } from './pages/UserManagement';
 import { SystemConfiguration } from './pages/SystemConfiguration';
-import { useAuth } from './context/AuthContext';
 
-const HomeRedirect: React.FC = () => {
-  const { user } = useAuth();
-  if (user?.role === 'ADMIN') {
-    return <Navigate to="/admin" replace />;
-  }
-  return <Navigate to="/dashboard" replace />;
-};
 
 const App: React.FC = () => {
   return (
@@ -81,7 +73,6 @@ const App: React.FC = () => {
           
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route index element={<HomeRedirect />} />
               <Route path="/dashboard" element={<Dashboard />} />
             
             {/* Phase 5 & 6 Workspaces */}
@@ -139,7 +130,7 @@ const App: React.FC = () => {
               <Route path="/compliance" element={<ComplianceDashboard />} />
               <Route path="/assurance" element={<AssuranceWorkspace />} />
 
-              <Route path="/" element={<HomeRedirect />} />
+              {/* Removed duplicate root route */}
             </Route>
           </Route>
 
