@@ -180,8 +180,9 @@ const startServer = async () => {
   try {
     // Phase 18: Environment Validation
     const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'PORT'];
-    if (process.env.NODE_ENV === 'production') {
-      requiredEnvVars.push('FRONTEND_URL');
+    // FRONTEND_URL is highly recommended in production for CORS/Emails, but we won't crash if it's missing.
+    if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+      console.warn('[WARN] FRONTEND_URL is missing. Emails or strict CORS might not work correctly.');
     }
 
     const missingVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
