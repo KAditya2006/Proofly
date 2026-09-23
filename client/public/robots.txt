@@ -1,0 +1,30 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /features
+Allow: /esg-reporting
+Allow: /brsr-reporting
+Allow: /contact
+
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /esg
+Disallow: /reviews
+Disallow: /evidence
+Disallow: /brsr
+Disallow: /evidence-intel
+Disallow: /compliance
+Disallow: /assurance
+Disallow: /tasks
+Disallow: /notifications
+Disallow: /bulk-upload
+Disallow: /reporting-periods
+Disallow: /analytics
+Disallow: /reports
+Disallow: /organization
+Disallow: /projects
+Disallow: /reporting
+Disallow: /change-password
+Disallow: /api/
+
+Sitemap: https://www.meilesg360.com/sitemap.xml

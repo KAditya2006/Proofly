@@ -11,10 +11,10 @@ const readinessService_1 = require("../services/readinessService");
 const hierarchy_1 = require("../utils/hierarchy");
 // Helper for RBAC filtering
 const getOrgFilter = async (user) => {
-    if (user.role === 'PROJECT_OFFICER' || user.role === 'BUSINESS_UNIT_REVIEWER') {
+    if (user.role === 'PROJECT_OFFICER') {
         return { organizationId: user.organizationId };
     }
-    else if (user.role === 'SUBSIDIARY_MANAGER' || user.role === 'GROUP_ESG_TEAM') {
+    else if (user.role === 'BUSINESS_UNIT_REVIEWER' || user.role === 'SUBSIDIARY_MANAGER' || user.role === 'GROUP_ESG_TEAM') {
         const authorizedProjectIds = await (0, hierarchy_1.getAuthorizedProjectIds)(user.organizationId);
         return { projectId: { $in: authorizedProjectIds } };
     }

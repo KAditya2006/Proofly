@@ -27,7 +27,7 @@ const getConsolidationKPIs = async (req, res) => {
             if (scopeId && scopeId !== organizationId.toString()) {
                 if (scopeLevel === 'PROJECT') {
                     const project = await Project_1.default.findById(scopeId);
-                    if (!project || project.organizationId?.toString() !== organizationId.toString()) {
+                    if (!project || project.businessUnitId?.toString() !== organizationId.toString()) {
                         return res.status(403).json({ message: 'Unauthorized access to this project' });
                     }
                 }
@@ -113,7 +113,7 @@ const getConsolidationLineage = async (req, res) => {
             if (scopeId && scopeId !== organizationId.toString()) {
                 if (scopeLevel === 'PROJECT') {
                     const project = await Project_1.default.findById(scopeId);
-                    if (!project || project.organizationId?.toString() !== organizationId.toString()) {
+                    if (!project || project.businessUnitId?.toString() !== organizationId.toString()) {
                         return res.status(403).json({ message: 'Unauthorized access to this project' });
                     }
                 }

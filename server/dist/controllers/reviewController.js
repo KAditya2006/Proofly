@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rejectSubmission = exports.requestCorrection = exports.approveSubmission = exports.getPendingReviews = void 0;
+exports.escalateSubmission = exports.rejectSubmission = exports.requestCorrection = exports.approveSubmission = exports.getPendingReviews = void 0;
 const ESGRecord_1 = __importDefault(require("../models/ESGRecord"));
 const Project_1 = __importDefault(require("../models/Project"));
 const ReportingPeriod_1 = __importDefault(require("../models/ReportingPeriod"));
@@ -175,3 +175,44 @@ const rejectSubmission = async (req, res) => {
     }
 };
 exports.rejectSubmission = rejectSubmission;
+// @desc    Escalate Submission to higher authority
+// @route   POST /api/reviews/:id/escalate
+// @access  Private (Reviewer)
+const escalateSubmission = async (req, res) => {
+    try {
+        const record = await ESGRecord_1.default.findById(req.params.id);
+        if (!record)
+            throw new errorHandler_1.AppError('Record not found', 404, 'NOT_FOUND');
+        if (!(await (0, esgRecordController_1.isAuthorizedForProject)(req.user, record.projectId?._id || record.projectId))) {
+            throw new errorHandler_1.AppError('Not authorized to escalate this record', 403, 'FORBIDDEN');
+        }
+        if (!['SUBMITTED', 'UNDER_REVIEW'].includes(record.status)) {
+            throw new errorHandler_1.AppError('Record is not in a reviewable state', 400, 'INVALID_STATE');
+        }
+        const period = await ReportingPeriod_1.default.findById(record.reportingPeriodId);
+        if (!period || period.status === 'CLOSED' || period.status === 'ARCHIVED') {
+            throw new errorHandler_1.AppError('Reporting period is closed or archived', 400, 'INVALID_PERIOD_STATE');
+        }
+        record.status = 'UNDER_REVIEW'; // Keep or set to UNDER_REVIEW to escalate
+        record.updatedBy = req.user._id;
+        await record.save();
+        await (0, auditLogger_1.logAudit)({
+            userId: req.user._id,
+            action: 'ESCALATE_RECORD',
+            entityType: 'ESGRecord',
+            entityId: record._id,
+            ipAddress: req.ip
+        });
+        res.json(record);
+    }
+    catch (error) {
+        console.error('Escalation Error:', error);
+        if (error instanceof errorHandler_1.AppError || error.statusCode) {
+            res.status(error.statusCode || 400).json({ message: error.message });
+        }
+        else {
+            res.status(500).json({ message: 'Server error escalating submission' });
+        }
+    }
+};
+exports.escalateSubmission = escalateSubmission;

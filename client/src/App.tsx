@@ -6,7 +6,14 @@ import AppLayout from './layouts/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
-import Welcome from './pages/Welcome';
+import PublicLayout from './layouts/PublicLayout';
+import Landing from './pages/public/Landing';
+import ESGReporting from './pages/public/ESGReporting';
+import BRSRReporting from './pages/public/BRSRReporting';
+import Features from './pages/public/Features';
+import About from './pages/public/About';
+import Contact from './pages/public/Contact';
+import NotFound from './pages/public/NotFound';
 import Login from './pages/Login';
 import FirstLoginPasswordChange from './pages/FirstLoginPasswordChange';
 import Dashboard from './pages/Dashboard';
@@ -56,7 +63,17 @@ const App: React.FC = () => {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/welcome" element={<Welcome />} />
+          {/* Public Marketing Routes */}
+          <Route path="/" element={<Landing />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/esg-reporting" element={<ESGReporting />} />
+            <Route path="/brsr-reporting" element={<BRSRReporting />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+          </Route>
+          
+          <Route path="/welcome" element={<Navigate to="/" replace />} />
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/change-password" element={<FirstLoginPasswordChange />} />
@@ -125,6 +142,9 @@ const App: React.FC = () => {
               <Route path="/" element={<HomeRedirect />} />
             </Route>
           </Route>
+
+          {/* 404 Route */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

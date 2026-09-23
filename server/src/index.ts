@@ -110,11 +110,6 @@ app.use('/api/import-batches', importBatchRoutes);
 app.use('/api/service-accounts', serviceAccountRoutes);
 app.use('/api/v1', apiV1Routes);
 
-// Basic Route
-app.get('/', (req: Request, res: Response) => {
-  res.send('MEIL ESG360 API Server is running.');
-});
-
 // Health check endpoints for deployment validation
 import mongoose from 'mongoose';
 import { protect, authorize } from './middleware/authMiddleware';
@@ -162,6 +157,19 @@ app.get('/api/health/detailed', protect, authorize('ADMIN'), (req: Request, res:
     timestamp: new Date().toISOString()
   });
 });
+
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../../client/dist')));
+  app.get('*', (req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+  });
+} else {
+  // Basic Route for development
+  app.get('/', (req: Request, res: Response) => {
+    res.send('MEIL ESG360 API Server is running.');
+  });
+}
 
 // Global Error Handler (must be after all routes)
 app.use(errorHandler);

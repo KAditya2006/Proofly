@@ -68,29 +68,32 @@ const createUser = async (req, res) => {
         if (organizationId && !mongoose_1.default.Types.ObjectId.isValid(organizationId)) {
             throw new errorHandler_1.AppError('Invalid organization ID format', 400, 'INVALID_ORG_ID');
         }
-        // Enforce limits for Reviewers and Managers
+        // Enforce limits for Reviewers and Managers (REMOVED)
+        /*
         if (organizationId) {
-            if (role === 'BUSINESS_UNIT_REVIEWER') {
-                const existingReviewer = await User_1.default.findOne({
-                    organizationId,
-                    role: 'BUSINESS_UNIT_REVIEWER',
-                    status: { $ne: 'DISABLED' }
-                });
-                if (existingReviewer) {
-                    throw new errorHandler_1.AppError('This Business Unit already has an active Reviewer. Maximum 1 Reviewer allowed per BU.', 400, 'BU_REVIEWER_LIMIT_EXCEEDED');
-                }
+          if (role === 'BUSINESS_UNIT_REVIEWER') {
+            const existingReviewer = await User.findOne({
+              organizationId,
+              role: 'BUSINESS_UNIT_REVIEWER',
+              status: { $ne: 'DISABLED' }
+            });
+            if (existingReviewer) {
+              throw new AppError('This Business Unit already has an active Reviewer. Maximum 1 Reviewer allowed per BU.', 400, 'BU_REVIEWER_LIMIT_EXCEEDED');
             }
-            if (role === 'SUBSIDIARY_MANAGER') {
-                const existingManager = await User_1.default.findOne({
-                    organizationId,
-                    role: 'SUBSIDIARY_MANAGER',
-                    status: { $ne: 'DISABLED' }
-                });
-                if (existingManager) {
-                    throw new errorHandler_1.AppError('This Subsidiary already has an active Manager. Maximum 1 Manager allowed per Subsidiary.', 400, 'SUB_MANAGER_LIMIT_EXCEEDED');
-                }
+          }
+    
+          if (role === 'SUBSIDIARY_MANAGER') {
+            const existingManager = await User.findOne({
+              organizationId,
+              role: 'SUBSIDIARY_MANAGER',
+              status: { $ne: 'DISABLED' }
+            });
+            if (existingManager) {
+              throw new AppError('This Subsidiary already has an active Manager. Maximum 1 Manager allowed per Subsidiary.', 400, 'SUB_MANAGER_LIMIT_EXCEEDED');
             }
+          }
         }
+        */
         // Auto-generate employeeId based on Role (e.g. MEIL-PO-0001)
         const rolePrefixes = {
             'PROJECT_OFFICER': 'PO',
@@ -196,31 +199,34 @@ const updateUser = async (req, res) => {
             }
             user.status = status;
         }
-        // Enforce limits for Reviewers and Managers
+        // Enforce limits for Reviewers and Managers (REMOVED)
+        /*
         if (user.organizationId && user.status !== 'DISABLED') {
-            if (user.role === 'BUSINESS_UNIT_REVIEWER') {
-                const existingReviewer = await User_1.default.findOne({
-                    _id: { $ne: user._id },
-                    organizationId: user.organizationId,
-                    role: 'BUSINESS_UNIT_REVIEWER',
-                    status: { $ne: 'DISABLED' }
-                });
-                if (existingReviewer) {
-                    throw new errorHandler_1.AppError('This Business Unit already has an active Reviewer. Maximum 1 Reviewer allowed per BU.', 400, 'BU_REVIEWER_LIMIT_EXCEEDED');
-                }
+          if (user.role === 'BUSINESS_UNIT_REVIEWER') {
+            const existingReviewer = await User.findOne({
+              _id: { $ne: user._id },
+              organizationId: user.organizationId,
+              role: 'BUSINESS_UNIT_REVIEWER',
+              status: { $ne: 'DISABLED' }
+            });
+            if (existingReviewer) {
+              throw new AppError('This Business Unit already has an active Reviewer. Maximum 1 Reviewer allowed per BU.', 400, 'BU_REVIEWER_LIMIT_EXCEEDED');
             }
-            if (user.role === 'SUBSIDIARY_MANAGER') {
-                const existingManager = await User_1.default.findOne({
-                    _id: { $ne: user._id },
-                    organizationId: user.organizationId,
-                    role: 'SUBSIDIARY_MANAGER',
-                    status: { $ne: 'DISABLED' }
-                });
-                if (existingManager) {
-                    throw new errorHandler_1.AppError('This Subsidiary already has an active Manager. Maximum 1 Manager allowed per Subsidiary.', 400, 'SUB_MANAGER_LIMIT_EXCEEDED');
-                }
+          }
+    
+          if (user.role === 'SUBSIDIARY_MANAGER') {
+            const existingManager = await User.findOne({
+              _id: { $ne: user._id },
+              organizationId: user.organizationId,
+              role: 'SUBSIDIARY_MANAGER',
+              status: { $ne: 'DISABLED' }
+            });
+            if (existingManager) {
+              throw new AppError('This Subsidiary already has an active Manager. Maximum 1 Manager allowed per Subsidiary.', 400, 'SUB_MANAGER_LIMIT_EXCEEDED');
             }
+          }
         }
+        */
         await user.save();
         await (0, auditLogger_1.logAudit)({
             userId: req.user._id,

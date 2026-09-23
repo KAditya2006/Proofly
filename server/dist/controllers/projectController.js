@@ -183,41 +183,49 @@ const updateProject = async (req, res) => {
         }
         if (assignedOfficers && Array.isArray(assignedOfficers)) {
             const newOfficers = assignedOfficers.map((id) => new mongoose_1.default.Types.ObjectId(id));
-            // 1. Max 1 active project per PO check
+            // 1. Max 1 active project per PO check (REMOVED)
+            /*
             for (const officerId of newOfficers) {
-                const otherActiveProject = await Project_1.default.findOne({
-                    _id: { $ne: project._id },
-                    status: 'ACTIVE',
-                    assignedOfficers: officerId
-                });
-                if (otherActiveProject) {
-                    throw new errorHandler_1.AppError(`Project Officer with ID ${officerId} is already assigned to active project: ${otherActiveProject.name}. They cannot be assigned to another active project.`, 400, 'PO_LIMIT_EXCEEDED');
-                }
+              const otherActiveProject = await Project.findOne({
+                _id: { $ne: project._id },
+                status: 'ACTIVE',
+                assignedOfficers: officerId
+              });
+              
+              if (otherActiveProject) {
+                throw new AppError(`Project Officer with ID ${officerId} is already assigned to active project: ${otherActiveProject.name}. They cannot be assigned to another active project.`, 400, 'PO_LIMIT_EXCEEDED');
+              }
             }
-            // 2. Max 10 POs per BU check
+            */
+            // 2. Max 10 POs per BU check (REMOVED)
+            /*
             const businessUnitId = project.businessUnitId;
             if (businessUnitId) {
-                // Find all other active projects in this BU
-                const otherProjectsInBU = await Project_1.default.find({
-                    _id: { $ne: project._id },
-                    businessUnitId,
-                    status: 'ACTIVE'
-                });
-                const buOfficerIds = new Set();
-                for (const p of otherProjectsInBU) {
-                    if (p.assignedOfficers) {
-                        for (const oId of p.assignedOfficers) {
-                            buOfficerIds.add(oId.toString());
-                        }
-                    }
-                }
-                for (const oId of newOfficers) {
+              // Find all other active projects in this BU
+              const otherProjectsInBU = await Project.find({
+                _id: { $ne: project._id },
+                businessUnitId,
+                status: 'ACTIVE'
+              });
+      
+              const buOfficerIds = new Set<string>();
+              for (const p of otherProjectsInBU) {
+                if (p.assignedOfficers) {
+                  for (const oId of p.assignedOfficers) {
                     buOfficerIds.add(oId.toString());
+                  }
                 }
-                if (buOfficerIds.size > 10) {
-                    throw new errorHandler_1.AppError(`A Business Unit can have a maximum of 10 Project Officers across all its active projects. Assigning these officers would result in ${buOfficerIds.size} officers for this BU.`, 400, 'BU_PO_LIMIT_EXCEEDED');
-                }
+              }
+              
+              for (const oId of newOfficers) {
+                buOfficerIds.add(oId.toString());
+              }
+      
+              if (buOfficerIds.size > 10) {
+                throw new AppError(`A Business Unit can have a maximum of 10 Project Officers across all its active projects. Assigning these officers would result in ${buOfficerIds.size} officers for this BU.`, 400, 'BU_PO_LIMIT_EXCEEDED');
+              }
             }
+            */
             project.assignedOfficers = newOfficers;
         }
         await project.save();

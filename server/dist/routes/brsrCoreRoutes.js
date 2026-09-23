@@ -8,6 +8,6 @@ const brsrCoreController_1 = require("../controllers/brsrCoreController");
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = express_1.default.Router();
 router.use(authMiddleware_1.protect);
-router.use((0, authMiddleware_1.authorize)('GROUP_ESG_TEAM', 'ADMIN', 'AUDITOR')); // BRSR Core is typically group-level
+router.use((0, authMiddleware_1.authorize)('GROUP_ESG_TEAM', 'ADMIN', 'AUDITOR', 'BUSINESS_UNIT_REVIEWER', 'SUBSIDIARY_MANAGER'));
 router.get('/dashboard', brsrCoreController_1.getBRSRCoreDashboard);
 exports.default = router;

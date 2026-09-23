@@ -107,30 +107,37 @@ MEIL Group
 - **Phase 42 (Complete):** UI/UX Polish & Responsive Sidebar Layout Fixes. Corrected the mobile sidebar navigation layout in `AppLayout.tsx` by overriding responsive hiding classes (`hidden md:flex`) from the Profily logo, ensuring brand consistency and correct visual hierarchy on mobile drawer states. Replaced legacy gray generic Tailwind styling in the `TrendChart` analytics component with the premium Profily design system (`brand-charcoal`, glassmorphism borders) to ensure visual consistency across the Subsidiary Manager dashboard.
 - **Phase 43 (Complete):** Production Database Migration & MongoDB Atlas Integration. Successfully migrated the local development MongoDB database (`meil_esg360`) to a cloud-hosted MongoDB Atlas cluster. Executed a Node.js migration script to securely transfer all existing records (Users, Organizations, Audit Logs, System Settings) to the cloud without data loss. Validated Network Access (IP Whitelisting) for the Atlas cluster and updated the production `server/.env` with the active Atlas `MONGODB_URI` connection string, finalizing the database infrastructure for deployment.
 - **Phase 44 (Complete):** Organizational Scale & Limit Adjustments. Removed legacy hardcoded constraints on Project Officer capacity and Business Unit scaling (previously capped at 10 POs per BU) to support large-scale enterprise deployments. Successfully seeded an enterprise-grade database containing exactly 1 Subsidiary, 25 Business Units, 25 BU Reviewers, 250 Project Officers, and 250 Active Projects (1 per PO) to prove massive scalability without breaking RBAC logic.
-
+- **Phase 45 (Complete):** Comprehensive SEO & Public Marketing Architecture. Implemented a production-grade, lightweight React SEO system natively handling dynamic meta tags, canonical URLs, and Open Graph/Twitter structured data without heavy external dependencies. Introduced a suite of semantic public marketing pages (`Landing`, `ESGReporting`, `BRSRReporting`, `Features`, `About`, `Contact`) targeted at core search intents. Generated robust `robots.txt` and `sitemap.xml` configurations to firmly segregate public indexability from private application boundaries, explicitly blocking crawlers from all authenticated workspaces to enforce absolute data security.
 
 ## Frontend Pages
 
 The application includes the following frontend pages, each serving a specific role in the ESG reporting lifecycle:
 
+- **About**: Public marketing page detailing MEIL ESG360's corporate mission.
 - **AdminControlCenter**: Central dashboard for administrators to monitor system health, jobs, and system configurations.
 - **AnalyticsDashboard**: High-level analytics and trend visualizations for enterprise ESG data.
 - **AssuranceWorkspace**: Dedicated workspace for auditors to review sampled ESG records and log findings.
 - **AuditSearch**: Interface for searching and filtering the tamper-evident audit logs.
 - **BRSRCore**: Dashboard focusing specifically on BRSR Core disclosures and compliance metrics.
+- **BRSRReporting**: Public marketing page focusing on SEBI BRSR compliance features.
 - **BulkUpload**: Interface for uploading large datasets of ESG data via CSV or XLSX formats.
 - **BulkUploadWorkspace**: Workspace to manage, validate, and process batch data uploads.
 - **ComplianceDashboard**: Overview of organizational compliance status, controls, and readiness.
+- **Contact**: Public support and contact information page.
 - **Dashboard**: Role-aware main dashboard providing quick access to tasks, status, and relevant metrics.
 - **ESGCollectionWorkspace**: Workspace for Project ESG Officers to input values, attach evidence, and submit records.
 - **ESGHub**: Central hub for exploring and managing the catalog of ESG indicators.
+- **ESGReporting**: Public marketing page detailing enterprise ESG software capabilities.
 - **EvidenceIntelligence**: Global dashboard to track evidence coverage and isolate missing documentation gaps.
+- **Features**: Public marketing page highlighting data lineage, consolidation, and assurance.
 - **FirstLoginPasswordChange**: Mandatory security page enforcing users to change their auto-generated password upon their first login before accessing the dashboard.
 - **ImportBatches**: Interface for managing and reviewing batches of data imported from external systems.
 - **IndicatorExplorer**: Analytical tool for drilling down into specific ESG indicators across the organization hierarchy.
 - **IntegrationDetail**: Detailed configuration and status view for individual external system integrations.
 - **IntegrationHub**: Central hub for managing third-party integrations, data pipelines, and external connectors.
+- **Landing**: The main public homepage introducing the platform.
 - **Login**: User authentication and secure login entry point using Employee ID.
+- **NotFound**: A strict no-index 404 error page preventing invalid URL crawling.
 - **NotificationCenter**: Centralized inbox for user notifications, alerts, and system-generated messages.
 - **Organization**: Administrative interface for managing the MEIL organizational hierarchy (Group, Subsidiary, Business Unit).
 - **Projects**: Interface for creating, viewing, and managing individual MEIL infrastructure projects.
@@ -145,7 +152,6 @@ The application includes the following frontend pages, each serving a specific r
 - **TaskBoard**: Collaborative Kanban-style board for tracking team tasks and workflows.
 - **UserManagement**: Interface for creating and managing user accounts, roles, and employee IDs.
 - **ValueChainDashboard**: Dashboard dedicated to tracking and managing ESG metrics across the external value chain.
-- **Welcome**: Landing page introducing the platform and routing users to authentication flows.
 
 ### Page Distribution by Organization Role
 
@@ -201,5 +207,6 @@ Based on the organization hierarchy, the pages map to each organizational level 
 - **FirstLoginPasswordChange**: Security interstitial requiring password change on first login.
 
 **8. Public / Pre-Authentication Pages (Unauthenticated)**
-- **Welcome**: Landing page.
+- **Landing**, **About**, **Features**, **ESGReporting**, **BRSRReporting**, **Contact**: Semantic marketing pages optimized for search engines.
 - **Login**: Authentication entry (via Employee ID).
+- **NotFound**: 404 error page.

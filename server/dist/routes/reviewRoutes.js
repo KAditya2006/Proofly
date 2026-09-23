@@ -14,4 +14,5 @@ router.route('/').get(reviewController_1.getPendingReviews);
 router.post('/:id/approve', reviewController_1.approveSubmission);
 router.post('/:id/correction', reviewController_1.requestCorrection);
 router.post('/:id/reject', reviewController_1.rejectSubmission);
+router.post('/:id/escalate', reviewController_1.escalateSubmission);
 exports.default = router;
