@@ -5,6 +5,7 @@ import { getOrganizations, type Organization } from '../services/organizationSer
 import { BarChart3, AlertTriangle, Layers, Target, ChevronRight, Activity, Calendar } from 'lucide-react';
 import LineageDrawer from '../components/LineageDrawer';
 import { useAuth } from '../context/AuthContext';
+import { PremiumLoader } from '../components/PremiumLoader';
 
 const AnalyticsDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -126,7 +127,7 @@ const AnalyticsDashboard: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="h-64 flex items-center justify-center text-brand-charcoal/50 font-serif text-lg tracking-widest uppercase">Aggregating data...</div>
+        <PremiumLoader text="Aggregating data..." />
       ) : (
         <>
           {/* Readiness Engine Summary */}

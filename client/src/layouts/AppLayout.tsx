@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -25,6 +25,15 @@ const AppLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   let navigation: any[] = [];
 
@@ -97,7 +106,7 @@ const AppLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-proofly-gradient flex flex-col md:flex-row font-sans text-brand-charcoal">
       {/* Mobile header */}
-      <div className="md:hidden bg-transparent flex items-center justify-between p-4 sticky top-0 z-30">
+      <div className={`md:hidden flex items-center justify-between p-4 sticky top-0 z-30 transition-all duration-300 ${scrolled ? 'bg-[#f9b1b1]/95 backdrop-blur-md shadow-md border-b border-brand-coral/30' : 'bg-transparent'}`}>
         <div className="flex items-center space-x-2">
           <button 
             onClick={() => navigate(-1)} 
@@ -106,7 +115,7 @@ const AppLayout: React.FC = () => {
           >
             <ArrowLeft className="h-6 w-6" />
           </button>
-          <ProfilyLogo className="w-28 sm:w-32" />
+          <ProfilyLogo className="w-40 sm:w-48" />
         </div>
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
@@ -131,7 +140,7 @@ const AppLayout: React.FC = () => {
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="h-28 flex items-center justify-center px-6 border-b border-brand-coral/10">
-          <ProfilyLogo className="w-40" />
+          <ProfilyLogo className="w-48" />
         </div>
 
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
@@ -173,7 +182,7 @@ const AppLayout: React.FC = () => {
       <main className="flex-1 flex flex-col overflow-hidden focus:outline-none bg-transparent">
         
         {/* Top Header */}
-        <div className="h-24 flex items-center justify-between px-4 sm:px-6 md:px-8 hidden md:flex z-10 sticky top-0">
+        <div className={`h-24 flex items-center justify-between px-4 sm:px-6 md:px-8 hidden md:flex z-10 sticky top-0 transition-all duration-300 ${scrolled ? 'bg-[#f9b1b1]/95 backdrop-blur-md shadow-md border-b border-brand-coral/30' : 'bg-transparent'}`}>
           <div className="flex items-center">
             <button
               onClick={() => navigate(-1)}
@@ -194,7 +203,10 @@ const AppLayout: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-8 px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto pb-24 md:pb-12">
+        <div 
+          className="flex-1 overflow-y-auto py-8 px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto pb-24 md:pb-12"
+          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 10)}
+        >
           <Outlet />
         </div>
       </main>

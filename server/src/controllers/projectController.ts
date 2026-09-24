@@ -102,29 +102,78 @@ export const createProject = async (req: any, res: ExpressRes) => {
   try {
     const { 
       name, 
-      projectCode, 
       organizationId, 
       businessUnitId, 
       subsidiaryId, 
       location, 
       sector,
       startDate,
-      endDate
+      endDate,
+      assignedOfficers
     } = req.body;
 
-    if (!name || !projectCode || !organizationId || !location || !sector) {
+    if (!name || !organizationId || !location || !sector) {
       throw new AppError('Missing required fields', 400, 'BAD_REQUEST');
     }
 
-    const existing = await Project.findOne({ projectCode });
-    if (existing) {
-      throw new AppError('Project code already exists', 400, 'DUPLICATE_CODE');
+    // Auto-generate project code sequentially (e.g., PRJ-0001)
+    const lastProject = await Project.findOne().sort({ createdAt: -1 });
+    let nextNum = 1;
+    if (lastProject && lastProject.projectCode && lastProject.projectCode.startsWith('PRJ-')) {
+      const parts = lastProject.projectCode.split('-');
+      if (parts.length === 2 && !isNaN(Number(parts[1]))) {
+        nextNum = parseInt(parts[1]) + 1;
+      } else {
+        const total = await Project.countDocuments();
+        nextNum = total + 1;
+      }
+    } else if (lastProject) {
+       const total = await Project.countDocuments();
+       nextNum = total + 1;
     }
+    const projectCode = `PRJ-${nextNum.toString().padStart(4, '0')}`;
 
     // Verify organization validity
     const org = await mongoose.model('Organization').findById(organizationId);
     if (!org) {
       throw new AppError('Organization not found', 404, 'ORG_NOT_FOUND');
+    }
+
+    // 1. Max 1 active project per PO check
+    if (assignedOfficers && assignedOfficers.length > 0) {
+      for (const officerId of assignedOfficers) {
+        const otherActiveProject = await Project.findOne({
+          status: 'ACTIVE',
+          assignedOfficers: officerId
+        });
+        
+        if (otherActiveProject) {
+          throw new AppError(`Project Officer is already assigned to an active project: ${otherActiveProject.name}.`, 400, 'PO_LIMIT_EXCEEDED');
+        }
+      }
+
+      // 2. Max 10 POs per BU check
+      const otherProjectsInOrg = await Project.find({
+        organizationId,
+        status: 'ACTIVE'
+      });
+
+      const orgOfficerIds = new Set<string>();
+      for (const p of otherProjectsInOrg) {
+        if (p.assignedOfficers) {
+          for (const oId of p.assignedOfficers) {
+            orgOfficerIds.add(oId.toString());
+          }
+        }
+      }
+      
+      for (const oId of assignedOfficers) {
+        orgOfficerIds.add(oId.toString());
+      }
+
+      if (orgOfficerIds.size > 10) {
+        throw new AppError(`This Business Unit can have a maximum of 10 Project Officers across all its active projects. Assigning these would exceed the limit.`, 400, 'BU_PO_LIMIT_EXCEEDED');
+      }
     }
 
     const project = await Project.create({
@@ -138,7 +187,7 @@ export const createProject = async (req: any, res: ExpressRes) => {
       startDate,
       endDate,
       status: 'ACTIVE',
-      assignedOfficers: []
+      assignedOfficers: assignedOfficers ? assignedOfficers.map((id: string) => new mongoose.Types.ObjectId(id)) : []
     });
 
     const { logAudit } = require('../utils/auditLogger');
@@ -199,8 +248,7 @@ export const updateProject = async (req: any, res: ExpressRes) => {
     if (assignedOfficers && Array.isArray(assignedOfficers)) {
       const newOfficers = assignedOfficers.map((id: string) => new mongoose.Types.ObjectId(id));
 
-      // 1. Max 1 active project per PO check (REMOVED)
-      /*
+      // 1. Max 1 active project per PO check
       for (const officerId of newOfficers) {
         const otherActiveProject = await Project.findOne({
           _id: { $ne: project._id },
@@ -209,40 +257,37 @@ export const updateProject = async (req: any, res: ExpressRes) => {
         });
         
         if (otherActiveProject) {
-          throw new AppError(`Project Officer with ID ${officerId} is already assigned to active project: ${otherActiveProject.name}. They cannot be assigned to another active project.`, 400, 'PO_LIMIT_EXCEEDED');
+          throw new AppError(`Project Officer is already assigned to active project: ${otherActiveProject.name}.`, 400, 'PO_LIMIT_EXCEEDED');
         }
       }
-      */
 
-      // 2. Max 10 POs per BU check (REMOVED)
-      /*
-      const businessUnitId = project.businessUnitId;
-      if (businessUnitId) {
+      // 2. Max 10 POs per BU check
+      const orgId = project.organizationId;
+      if (orgId) {
         // Find all other active projects in this BU
-        const otherProjectsInBU = await Project.find({
+        const otherProjectsInOrg = await Project.find({
           _id: { $ne: project._id },
-          businessUnitId,
+          organizationId: orgId,
           status: 'ACTIVE'
         });
 
-        const buOfficerIds = new Set<string>();
-        for (const p of otherProjectsInBU) {
+        const orgOfficerIds = new Set<string>();
+        for (const p of otherProjectsInOrg) {
           if (p.assignedOfficers) {
             for (const oId of p.assignedOfficers) {
-              buOfficerIds.add(oId.toString());
+              orgOfficerIds.add(oId.toString());
             }
           }
         }
         
         for (const oId of newOfficers) {
-          buOfficerIds.add(oId.toString());
+          orgOfficerIds.add(oId.toString());
         }
 
-        if (buOfficerIds.size > 10) {
-          throw new AppError(`A Business Unit can have a maximum of 10 Project Officers across all its active projects. Assigning these officers would result in ${buOfficerIds.size} officers for this BU.`, 400, 'BU_PO_LIMIT_EXCEEDED');
+        if (orgOfficerIds.size > 10) {
+          throw new AppError(`A Business Unit can have a maximum of 10 Project Officers across all its active projects. Assigning these officers would result in ${orgOfficerIds.size} officers for this BU.`, 400, 'BU_PO_LIMIT_EXCEEDED');
         }
       }
-      */
 
       project.assignedOfficers = newOfficers;
     }

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { login } from '../services/authService';
 import { ProfilyLogo } from '../components/ProfilyLogo';
 import { Mail, Lock, Eye } from 'lucide-react';
-import { AuthCurve } from '../components/AuthCurve';
+
 
 const Login: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
@@ -36,24 +36,17 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-proofly-gradient relative overflow-hidden">
-      
-      {/* Top Section */}
-      <div className="flex-1 flex flex-col items-center pt-24 px-8 pb-16 z-10 shrink-0 min-h-[280px]">
-        <ProfilyLogo className="w-52 mb-16" />
-        
-        <div className="w-full max-w-sm text-left">
-          <h1 className="hollow-heading text-[2.75rem] text-left">
-            Sign In
-          </h1>
+    <div className="min-h-screen flex items-center justify-center bg-proofly-gradient relative overflow-hidden p-6">
+      <div className="w-full max-w-md relative z-10 flex flex-col items-center">
+        <div className="flex justify-center mb-12 w-full px-4">
+          <ProfilyLogo className="w-full max-w-[20rem] md:max-w-md" />
         </div>
-      </div>
-
-      {/* Bottom White Section */}
-      <div className="relative bg-white w-full flex flex-col items-center pt-10 pb-12 px-8">
-        <AuthCurve />
         
-        <form className="w-full max-w-sm space-y-8 relative z-20" onSubmit={handleSubmit}>
+        <h1 className="hollow-heading text-4xl md:text-5xl font-serif text-brand-navy font-bold text-center mb-12 tracking-widest uppercase">
+          Sign In
+        </h1>
+        
+        <form className="w-full space-y-8" onSubmit={handleSubmit}>
           <div>
             <label className="input-label">Employee ID</label>
             <div className="relative mt-2 flex items-center">
@@ -78,7 +71,7 @@ const Login: React.FC = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 required
-                placeholder="••••••••••"
+                placeholder="Enter your Password"
                 className={`input-field pl-10 pr-10 ${password ? 'border-brand-coral' : 'border-gray-300'}`}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -94,14 +87,14 @@ const Login: React.FC = () => {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm font-medium">{error}</div>
+            <div className="text-red-600 text-sm font-medium text-center">{error}</div>
           )}
 
-          <div className="pt-6 w-full">
+          <div className="pt-4">
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full border-2 border-brand-coral py-4 text-center font-serif text-lg tracking-widest text-brand-coral uppercase hover:bg-brand-coral/5 transition-colors focus:outline-none"
+              className="btn-primary"
             >
               {loading ? 'SIGNING IN...' : 'CONTINUE'}
             </button>

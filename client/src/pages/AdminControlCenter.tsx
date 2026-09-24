@@ -15,6 +15,7 @@ import {
   Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { PremiumLoader } from '../components/PremiumLoader';
 
 export const AdminControlCenter: React.FC = () => {
   const [health, setHealth] = useState<any>(null);
@@ -63,9 +64,7 @@ export const AdminControlCenter: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="flex h-64 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-600"></div>
-    </div>
+    <PremiumLoader text="Initializing Control Center..." />
   );
 
   return (

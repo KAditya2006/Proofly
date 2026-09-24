@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { getProjects, createProject, type Project } from '../services/projectService';
 import { getOrganizations, type Organization } from '../services/organizationService';
-import { FolderKanban, MapPin, Building2, Search, Filter, X, Plus } from 'lucide-react';
+import { userService, type User } from '../services/userService';
+import { FolderKanban, MapPin, Building2, Search, Filter, X, Plus, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { PremiumSelect } from '../components/PremiumSelect';
 
 const ProjectsPage: React.FC = () => {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [availablePOs, setAvailablePOs] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,18 +23,21 @@ const ProjectsPage: React.FC = () => {
     organizationId: '',
     location: '',
     sector: '',
-    startDate: ''
+    startDate: '',
+    assignedOfficers: [] as string[]
   });
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [projData, orgData] = await Promise.all([
+      const [projData, orgData, usersData] = await Promise.all([
         getProjects(),
-        getOrganizations()
+        getOrganizations(),
+        userService.getUsers()
       ]);
       setProjects(projData);
       setOrganizations(orgData);
+      setAvailablePOs(usersData.filter(u => u.role === 'PROJECT_OFFICER'));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -48,6 +54,20 @@ const ProjectsPage: React.FC = () => {
     p.projectCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const eligiblePOs = availablePOs.filter(po => po.organizationId?._id === formData.organizationId);
+
+  const handleTogglePO = (poId: string) => {
+    setFormData(prev => {
+      const isSelected = prev.assignedOfficers.includes(poId);
+      return {
+        ...prev,
+        assignedOfficers: isSelected 
+          ? prev.assignedOfficers.filter(id => id !== poId)
+          : [...prev.assignedOfficers, poId]
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -57,10 +77,11 @@ const ProjectsPage: React.FC = () => {
         projectCode: formData.projectCode,
         organizationId: formData.organizationId,
         location: formData.location,
-        sector: formData.sector
+        sector: formData.sector,
+        assignedOfficers: formData.assignedOfficers
       });
       setIsModalOpen(false);
-      setFormData({ name: '', projectCode: '', organizationId: '', location: '', sector: '', startDate: '' });
+      setFormData({ name: '', projectCode: '', organizationId: '', location: '', sector: '', startDate: '', assignedOfficers: [] });
       await fetchData();
     } catch (error) {
       console.error('Error creating project:', error);
@@ -193,117 +214,217 @@ const ProjectsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* Premium Create Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-brand-navy/40 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-md bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 p-6">
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-brand-coral hover:bg-white/50 rounded-full transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            
-            <div className="mb-6">
-              <h2 className="text-xl font-serif font-bold text-brand-navy">New Project Setup</h2>
-              <p className="text-sm text-slate-500 mt-1">Register a new project or facility for ESG tracking.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-navy/40 backdrop-blur-sm p-4 sm:p-6">
+          <div className="bg-white rounded-4xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-white/50 transform transition-all">
+            <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
+              <h3 className="text-2xl font-serif text-brand-navy font-bold tracking-wide">
+                New Project Setup
+              </h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 rounded-full text-gray-400 hover:text-brand-coral hover:bg-brand-blush transition-colors focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-brand-charcoal mb-1">Project Name *</label>
-                <input 
-                  required type="text" 
-                  className="input-field bg-white/50" 
-                  placeholder="e.g. Solar Plant Alpha"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-brand-charcoal mb-1">Project Code *</label>
-                  <input 
-                    required type="text" 
-                    className="input-field bg-white/50" 
-                    placeholder="e.g. P-008"
-                    value={formData.projectCode}
-                    onChange={e => setFormData({...formData, projectCode: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-brand-charcoal mb-1">Start Date</label>
-                  <input 
-                    type="date" 
-                    className="input-field bg-white/50"
-                    value={formData.startDate}
-                    onChange={e => setFormData({...formData, startDate: e.target.value})}
-                  />
-                </div>
-              </div>
+            <div className="flex-1 overflow-y-auto">
+              <form onSubmit={handleSubmit} className="p-8">
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Project Name *</label>
+                    <input 
+                      required type="text" 
+                      className="w-full bg-gray-50 border border-gray-200 text-brand-navy rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-coral/20 focus:border-brand-coral transition-all placeholder-gray-400" 
+                      placeholder="e.g. Solar Plant Alpha"
+                      value={formData.name}
+                      onChange={e => setFormData({...formData, name: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Project Code</label>
+                    <input 
+                      disabled type="text" 
+                      className="w-full bg-gray-100 border border-gray-200 text-gray-500 rounded-xl px-4 py-3 cursor-not-allowed font-mono text-sm" 
+                      placeholder="Auto-generated on creation"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Start Date</label>
+                    <input 
+                      type="date" 
+                      className="w-full bg-gray-50 border border-gray-200 text-brand-navy rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-coral/20 focus:border-brand-coral transition-all"
+                      value={formData.startDate}
+                      onChange={e => setFormData({...formData, startDate: e.target.value})}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-brand-charcoal mb-1">Organization Node *</label>
-                <select 
-                  required 
-                  className="input-field bg-white/50"
-                  value={formData.organizationId}
-                  onChange={e => setFormData({...formData, organizationId: e.target.value})}
-                >
-                  <option value="">Select BU or Subsidiary...</option>
-                  {organizations.map(org => (
-                    <option key={org._id} value={org._id}>{org.name} ({org.type.replace('_', ' ')})</option>
-                  ))}
-                </select>
-              </div>
+                  <div className="col-span-1 md:col-span-2 pt-4">
+                    <h4 className="text-lg font-serif font-semibold text-brand-navy border-b border-gray-100 pb-2">Location & Organization</h4>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-brand-charcoal mb-1">Location *</label>
-                  <input 
-                    required type="text" 
-                    className="input-field bg-white/50" 
-                    placeholder="e.g. Gujarat"
-                    value={formData.location}
-                    onChange={e => setFormData({...formData, location: e.target.value})}
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Organization Node *</label>
+                    <PremiumSelect 
+                      options={organizations
+                        .filter(org => org.type === 'BUSINESS_UNIT')
+                        .map(org => ({ value: org._id, label: `${org.name}` }))}
+                      value={formData.organizationId}
+                      onChange={val => setFormData({...formData, organizationId: val, assignedOfficers: []})}
+                      placeholder="Select Business Unit..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sector *</label>
+                    <PremiumSelect 
+                      options={[
+                        { value: 'Infrastructure', label: 'Infrastructure' },
+                        { value: 'Energy', label: 'Energy' },
+                        { value: 'Water', label: 'Water' },
+                        { value: 'Manufacturing', label: 'Manufacturing' },
+                        { value: 'Other', label: 'Other' }
+                      ]}
+                      value={formData.sector}
+                      onChange={val => setFormData({...formData, sector: val})}
+                      placeholder="Select Sector..."
+                    />
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Location *</label>
+                    <input 
+                      required type="text" 
+                      className="w-full bg-gray-50 border border-gray-200 text-brand-navy rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-coral/20 focus:border-brand-coral transition-all placeholder-gray-400" 
+                      placeholder="e.g. Gujarat"
+                      value={formData.location}
+                      onChange={e => setFormData({...formData, location: e.target.value})}
+                    />
+                  </div>
+
+                  {formData.organizationId && (
+                    <div className="col-span-1 md:col-span-2 pt-4">
+                      <h4 className="text-lg font-serif font-semibold text-brand-navy border-b border-gray-100 pb-2 mb-4 flex items-center justify-between">
+                        <span>Assign Project Officers</span>
+                        <span className="text-xs font-sans font-medium text-brand-coral bg-brand-blush px-2 py-1 rounded-full">{formData.assignedOfficers.length} Selected</span>
+                      </h4>
+                      
+                      {eligiblePOs.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {eligiblePOs.map(po => {
+                            const isSelected = formData.assignedOfficers.includes(po._id);
+                            
+                            // Check how many active projects this PO currently has
+                            const activeProjects = projects.filter(p => 
+                              p.status === 'ACTIVE' && 
+                              p.assignedOfficers && 
+                              p.assignedOfficers.some(officer => {
+                                // In getProjects, assignedOfficers might be just IDs or objects if we ever populate it.
+                                // But currently it's just IDs since it's not populated in getProjects.
+                                const id = typeof officer === 'string' ? officer : (officer as any)._id;
+                                return id === po._id;
+                              })
+                            ).length;
+                            
+                            const isAvailable = activeProjects === 0;
+
+                            // Check BU limit (Max 10 POs)
+                            const otherActiveProjectsInBU = projects.filter(p => p.status === 'ACTIVE' && p.organizationId?._id === formData.organizationId);
+                            const existingPOsInBU = new Set<string>();
+                            otherActiveProjectsInBU.forEach(p => {
+                              if (p.assignedOfficers) {
+                                p.assignedOfficers.forEach(officer => {
+                                  const id = typeof officer === 'string' ? officer : (officer as any)._id;
+                                  existingPOsInBU.add(id);
+                                });
+                              }
+                            });
+                            
+                            let newPOsCount = 0;
+                            formData.assignedOfficers.forEach(id => {
+                              if (!existingPOsInBU.has(id)) newPOsCount++;
+                            });
+                            
+                            const isBULimitReached = (existingPOsInBU.size + newPOsCount) >= 10;
+                            const canSelect = isSelected || (isAvailable && !isBULimitReached);
+
+                            return (
+                              <div 
+                                key={po._id} 
+                                onClick={() => canSelect && handleTogglePO(po._id)}
+                                className={`p-4 rounded-xl border transition-all ${
+                                  isSelected 
+                                    ? 'bg-brand-blush/30 border-brand-coral shadow-sm cursor-pointer' 
+                                    : canSelect
+                                      ? 'bg-white border-gray-200 hover:border-gray-300 cursor-pointer'
+                                      : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
+                                } flex items-center justify-between`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-brand-coral text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                    {po.name.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className={`font-semibold text-sm ${isSelected ? 'text-brand-navy' : 'text-gray-700'}`}>{po.name}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{po.email}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  {isAvailable ? (
+                                    <>
+                                      <div className="flex items-center gap-1.5 justify-end mb-1">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                        <span className="text-[10px] font-bold text-emerald-600 uppercase">Available</span>
+                                      </div>
+                                      <p className="text-[10px] text-gray-400">Capacity: 0/1</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center gap-1.5 justify-end mb-1">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                        <span className="text-[10px] font-bold text-amber-600 uppercase">Assigned</span>
+                                      </div>
+                                      <p className="text-[10px] text-gray-400">Capacity: 1/1 (Full)</p>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 rounded-xl p-6 text-center border border-dashed border-gray-200">
+                          <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-gray-600">No Project Officers found</p>
+                          <p className="text-xs text-gray-400 mt-1">There are no POs registered under this Organization Node.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-brand-charcoal mb-1">Sector *</label>
-                  <select 
-                    required 
-                    className="input-field bg-white/50"
-                    value={formData.sector}
-                    onChange={e => setFormData({...formData, sector: e.target.value})}
+
+                <div className="flex justify-end gap-4 pt-8 mt-8 border-t border-gray-100">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-6 py-3 rounded-full text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors focus:outline-none"
                   >
-                    <option value="">Select...</option>
-                    <option value="Infrastructure">Infrastructure</option>
-                    <option value="Energy">Energy</option>
-                    <option value="Water">Water</option>
-                    <option value="Manufacturing">Manufacturing</option>
-                    <option value="Other">Other</option>
-                  </select>
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={saving || !formData.organizationId}
+                    className="px-8 py-3 rounded-full bg-brand-navy text-white text-sm font-serif tracking-widest uppercase font-semibold hover:bg-brand-coral hover:shadow-lg hover:-translate-y-0.5 transition-all focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                  >
+                    {saving ? 'Creating...' : 'Create Project'}
+                  </button>
                 </div>
-              </div>
-
-              <div className="pt-4 mt-6 border-t border-slate-100 flex justify-end gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={saving}
-                  className="btn-primary"
-                >
-                  {saving ? 'Creating...' : 'Create Project'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
