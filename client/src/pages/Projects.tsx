@@ -37,7 +37,7 @@ const ProjectsPage: React.FC = () => {
       ]);
       setProjects(projData);
       setOrganizations(orgData);
-      setAvailablePOs(usersData.filter(u => u.role === 'PROJECT_OFFICER'));
+      setAvailablePOs(usersData.filter((u: User) => u.role === 'PROJECT_OFFICER'));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
