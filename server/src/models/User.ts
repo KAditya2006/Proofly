@@ -21,7 +21,7 @@ const UserSchema: Schema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, index: true },
   employeeId: { type: String, unique: true, sparse: true, index: true },
-  mustChangePassword: { type: Boolean, default: false },
+  mustChangePassword: { type: Boolean, default: true },
   mobileNo: { type: String, required: true },
   passwordHash: { type: String, required: true },
   role: { 

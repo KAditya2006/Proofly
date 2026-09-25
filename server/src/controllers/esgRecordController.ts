@@ -69,6 +69,27 @@ export const getRecords = async (req: AuthRequest, res: ExpressRes): Promise<voi
       }
     }
 
+    if (req.query.indicatorId) {
+      query.indicatorId = req.query.indicatorId;
+    }
+    if (req.query.reportingPeriodId) {
+      query.reportingPeriodId = req.query.reportingPeriodId;
+    }
+    if (req.query.projectId) {
+      // Ensure they don't bypass role-based projectId filter
+      if (query.projectId && typeof query.projectId === 'object' && '$in' in query.projectId) {
+        const allowedIds = (query.projectId as any).$in.map((id: any) => id.toString());
+        if (allowedIds.includes(req.query.projectId as string)) {
+          query.projectId = req.query.projectId;
+        } else {
+           res.status(403).json({ message: 'Not authorized for this project' });
+           return;
+        }
+      } else {
+        query.projectId = req.query.projectId;
+      }
+    }
+
     // Pagination
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;

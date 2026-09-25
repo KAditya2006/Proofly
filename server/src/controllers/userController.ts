@@ -107,18 +107,25 @@ export const createUser = async (req: any, res: ExpressRes) => {
     
     const prefix = `MEIL-${rolePrefixes[role] || 'EMP'}`;
 
-    // Find highest employeeId with this prefix to auto-increment
-    const lastUser = await User.findOne({ employeeId: { $regex: `^${prefix}-\\d+$` } })
-      .sort({ employeeId: -1 })
-      .exec();
+    // Find all existing employee IDs with this prefix to find the first gap
+    const existingUsers = await User.find({ employeeId: { $regex: `^${prefix}-\\d+$` } }, 'employeeId');
+    const existingNums = existingUsers
+      .map(u => {
+        const match = u.employeeId.match(new RegExp(`^${prefix}-(\\d+)$`));
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0)
+      .sort((a, b) => a - b);
 
     let nextNum = 1;
-    if (lastUser && lastUser.employeeId) {
-      const match = lastUser.employeeId.match(new RegExp(`^${prefix}-(\\d+)$`));
-      if (match) {
-        nextNum = parseInt(match[1], 10) + 1;
+    for (const num of existingNums) {
+      if (num === nextNum) {
+        nextNum++;
+      } else if (num > nextNum) {
+        break;
       }
     }
+    
     const generatedEmployeeId = `${prefix}-${nextNum.toString().padStart(4, '0')}`;
 
     const salt = await bcrypt.genSalt(10);
@@ -278,8 +285,16 @@ export const deleteUser = async (req: any, res: ExpressRes) => {
     }
 
     // Hard deletion is prohibited due to orphaned dependencies (Audit, ESG Records, Reviews)
-    // We soft-delete by changing status to DISABLED.
+    // We soft-delete by changing status to DISABLED and freeing up email and employeeId.
+    const oldEmployeeId = user.employeeId;
+    const oldEmail = user.email;
+    
     user.status = 'DISABLED';
+    user.email = `${user.email}_deleted_${Date.now()}`;
+    if (user.employeeId) {
+      user.employeeId = `${user.employeeId}_deleted_${Date.now()}`;
+    }
+    
     await user.save();
 
     await logAudit({
@@ -287,8 +302,8 @@ export const deleteUser = async (req: any, res: ExpressRes) => {
       action: 'USER_DISABLED',
       entityType: 'User',
       entityId: user._id.toString(),
-      before: { status: 'ACTIVE' },
-      after: { status: 'DISABLED' }
+      before: { status: 'ACTIVE', email: oldEmail, employeeId: oldEmployeeId },
+      after: { status: 'DISABLED', email: user.email, employeeId: user.employeeId }
     });
 
     res.json({ success: true, message: 'User successfully disabled' });

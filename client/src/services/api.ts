@@ -32,10 +32,10 @@ api.interceptors.response.use(
     const requestId = error.response?.headers?.['x-request-id'] || error.config?.headers?.['X-Request-ID'];
     
     if (error.response && error.response.status === 401) {
-      console.warn(`[Req: ${requestId}] Unauthorized. Redirecting to login.`);
+      console.warn(`[Req: ${requestId}] Unauthorized. Dispatching logout event.`);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      window.dispatchEvent(new Event('auth:unauthorized'));
     } else if (error.response && error.response.status === 403) {
       console.error(`[Req: ${requestId}] Forbidden: You do not have permission for this action.`);
     } else {

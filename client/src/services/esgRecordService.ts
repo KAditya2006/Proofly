@@ -30,8 +30,12 @@ export interface ValidationResult {
   errors: string[];
 }
 
-export const getRecords = async (page = 1, limit = 50): Promise<ESGRecord[]> => {
-  const response = await api.get(`/esg/records?page=${page}&limit=${limit}`);
+export const getRecords = async (page = 1, limit = 50, params: any = {}): Promise<ESGRecord[]> => {
+  const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+  Object.keys(params).forEach(key => {
+    if (params[key]) queryParams.append(key, params[key]);
+  });
+  const response = await api.get(`/esg/records?${queryParams.toString()}`);
   return response.data.data || response.data;
 };
 

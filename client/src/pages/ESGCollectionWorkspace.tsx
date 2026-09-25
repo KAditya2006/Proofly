@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { getProjects, type Project } from '../services/projectService';
 import { getReportingPeriods, type ReportingPeriod } from '../services/reportingService';
 import { getIndicators, type ESGIndicator } from '../services/indicatorService';
-import { createRecord } from '../services/esgRecordService';
-import { FolderKanban, Calendar, Activity, UploadCloud, CheckCircle2, ChevronRight, Save } from 'lucide-react';
+import { FolderKanban, Calendar, Activity, UploadCloud, CheckCircle2, ChevronRight, Save, Loader2 } from 'lucide-react';
 
 const ESGCollectionWorkspace: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [periods, setPeriods] = useState<ReportingPeriod[]>([]);
   const [indicators, setIndicators] = useState<ESGIndicator[]>([]);
+  const [existingRecord, setExistingRecord] = useState<any>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('');
@@ -21,6 +22,7 @@ const ESGCollectionWorkspace: React.FC = () => {
   
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [loadingRecord, setLoadingRecord] = useState(false);
 
   useEffect(() => {
     // In a real app we'd fetch in parallel or sequentially based on dependencies
@@ -29,10 +31,50 @@ const ESGCollectionWorkspace: React.FC = () => {
     getIndicators().then(setIndicators);
   }, []);
 
+  // Check for existing record when step 3 is reached
+  useEffect(() => {
+    if (step === 3 && selectedProject && selectedPeriod && selectedIndicator) {
+      setLoadingRecord(true);
+      import('../services/esgRecordService').then(({ getRecords }) => {
+        getRecords(1, 1, {
+          projectId: selectedProject,
+          reportingPeriodId: selectedPeriod,
+          indicatorId: selectedIndicator
+        }).then(records => {
+          if (records && records.length > 0) {
+            const record = records[0];
+            setExistingRecord(record);
+            setValue(record.value.toString());
+            setUnit(record.unit);
+            setSource(record.source || '');
+            setCalculationMethod(record.calculationMethod || '');
+            setRemarks(record.remarks || '');
+            
+            if (['SUBMITTED', 'UNDER_REVIEW', 'APPROVED'].includes(record.status)) {
+              setIsReadOnly(true);
+            } else {
+              setIsReadOnly(false);
+            }
+          } else {
+            setExistingRecord(null);
+            setValue('');
+            setSource('');
+            setCalculationMethod('');
+            setRemarks('');
+            setIsReadOnly(false);
+          }
+        }).finally(() => {
+          setLoadingRecord(false);
+        });
+      });
+    }
+  }, [step, selectedProject, selectedPeriod, selectedIndicator]);
+
   const handleSaveDraft = async () => {
     try {
       setSaving(true);
-      await createRecord({
+      const { createRecord, updateRecord } = await import('../services/esgRecordService');
+      const data = {
         projectId: selectedProject,
         reportingPeriodId: selectedPeriod,
         indicatorId: selectedIndicator,
@@ -42,12 +84,43 @@ const ESGCollectionWorkspace: React.FC = () => {
         calculationMethod,
         remarks,
         evidenceIds: []
-      });
-      alert('Draft saved successfully!');
-      // Reset or redirect
+      };
+
+      if (existingRecord) {
+        const updated = await updateRecord(existingRecord._id, data);
+        setExistingRecord(updated);
+        alert('Draft updated successfully!');
+      } else {
+        const created = await createRecord(data);
+        setExistingRecord(created);
+        alert('Draft saved successfully!');
+      }
+      
+      // Optionally reset step
     } catch (error) {
       console.error(error);
       alert('Failed to save draft');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSubmitRecord = async () => {
+    if (!existingRecord) {
+      alert('Please save the record as a draft first before submitting.');
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      const { submitRecord } = await import('../services/esgRecordService');
+      const submitted = await submitRecord(existingRecord._id);
+      setExistingRecord(submitted);
+      setIsReadOnly(true);
+      alert('Record submitted successfully! It is now pending BU review.');
+    } catch (error: any) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Failed to submit record');
     } finally {
       setSaving(false);
     }
@@ -90,7 +163,7 @@ const ESGCollectionWorkspace: React.FC = () => {
                     onChange={e => setSelectedProject(e.target.value)}
                   >
                     <option value="">Select a project...</option>
-                    {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                    {projects.map(p => <option key={p._id} value={p._id}>{p.name} ({p.status === 'COMPLETED' ? 'Completed' : 'Ongoing'})</option>)}
                   </select>
                 </div>
               </div>
@@ -194,7 +267,13 @@ const ESGCollectionWorkspace: React.FC = () => {
           </div>
           
           {step === 3 && (
-            <div className="p-8 pt-4 space-y-10">
+            <div className="p-8 pt-4 space-y-10 relative">
+              {loadingRecord && (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-b-[2rem]">
+                  <Loader2 className="h-10 w-10 text-brand-coral animate-spin mb-4" />
+                  <p className="text-brand-navy font-medium">Loading existing record...</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
                 <div>
                   <label className="input-label">Value</label>
@@ -204,7 +283,8 @@ const ESGCollectionWorkspace: React.FC = () => {
                       className="input-field text-lg" 
                       value={value}
                       onChange={e => setValue(e.target.value)}
-                      placeholder="Enter value" 
+                      placeholder="Enter value"
+                      disabled={isReadOnly}
                     />
                   </div>
                 </div>
@@ -225,19 +305,19 @@ const ESGCollectionWorkspace: React.FC = () => {
                 <div>
                   <label className="input-label">Source of Information</label>
                   <div className="mt-2">
-                    <input type="text" className="input-field text-lg" value={source} onChange={e => setSource(e.target.value)} placeholder="e.g. Utility Bills, HR System" />
+                    <input type="text" className="input-field text-lg" value={source} onChange={e => setSource(e.target.value)} placeholder="e.g. Utility Bills, HR System" disabled={isReadOnly} />
                   </div>
                 </div>
                 <div>
                   <label className="input-label">Calculation Method (Optional)</label>
                   <div className="mt-2">
-                    <input type="text" className="input-field text-lg" value={calculationMethod} onChange={e => setCalculationMethod(e.target.value)} placeholder="e.g. Sum of monthly readings" />
+                    <input type="text" className="input-field text-lg" value={calculationMethod} onChange={e => setCalculationMethod(e.target.value)} placeholder="e.g. Sum of monthly readings" disabled={isReadOnly} />
                   </div>
                 </div>
                 <div>
                   <label className="input-label">Remarks</label>
                   <div className="mt-2">
-                    <textarea className="input-field text-lg min-h-24 resize-none" value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Add any context or comments"></textarea>
+                    <textarea className="input-field text-lg min-h-24 resize-none" value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Add any context or comments" disabled={isReadOnly}></textarea>
                   </div>
                 </div>
               </div>
@@ -256,12 +336,21 @@ const ESGCollectionWorkspace: React.FC = () => {
                   Run Validation
                 </button>
                 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                  <button className="btn-secondary flex items-center justify-center gap-2 w-full sm:w-auto uppercase tracking-widest px-8" onClick={handleSaveDraft} disabled={saving}>
-                    <Save className="h-4 w-4" /> {saving ? 'SAVING...' : 'SAVE DRAFT'}
-                  </button>
-                  <button className="btn-primary w-full sm:w-auto px-12" disabled={!value}>
-                    SUBMIT RECORD
-                  </button>
+                  {existingRecord && (
+                    <div className="flex items-center justify-center px-4 py-2 bg-gray-100 rounded-lg mr-4">
+                      <span className="text-sm font-bold text-gray-600">STATUS: {existingRecord.status}</span>
+                    </div>
+                  )}
+                  {!isReadOnly && (
+                    <>
+                      <button className="btn-secondary flex items-center justify-center gap-2 w-full sm:w-auto uppercase tracking-widest px-8" onClick={handleSaveDraft} disabled={saving || loadingRecord}>
+                        <Save className="h-4 w-4" /> {saving ? 'SAVING...' : (existingRecord ? 'UPDATE DRAFT' : 'SAVE DRAFT')}
+                      </button>
+                      <button className="btn-primary w-full sm:w-auto px-12" disabled={!value || saving || loadingRecord} onClick={handleSubmitRecord}>
+                        SUBMIT RECORD
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -46,7 +46,11 @@ const OrganizationPage: React.FC = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'type') {
+      setFormData({ ...formData, type: e.target.value as any, parentId: '' });
+    } else {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -206,11 +210,18 @@ const OrganizationPage: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-coral focus:border-transparent outline-none bg-white"
                   >
                     <option value="">Select Parent</option>
-                    {organizations.map(org => (
-                      <option key={org._id} value={org._id}>
-                        {org.name} ({org.type})
-                      </option>
-                    ))}
+                    {organizations
+                      .filter(org => {
+                        if (formData.type === 'SUBSIDIARY') return org.type === 'GROUP';
+                        if (formData.type === 'BUSINESS_UNIT') return org.type === 'SUBSIDIARY';
+                        if (formData.type === 'PROJECT') return org.type === 'BUSINESS_UNIT';
+                        return true;
+                      })
+                      .map(org => (
+                        <option key={org._id} value={org._id}>
+                          {org.name} ({org.type.replace('_', ' ')})
+                        </option>
+                      ))}
                   </select>
                 </div>
               )}

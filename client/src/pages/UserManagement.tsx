@@ -97,6 +97,24 @@ export const UserManagement: React.FC = () => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    if (!window.confirm(`Are you sure you want to delete the user ${selectedUser.name}? This action cannot be undone.`)) return;
+    
+    setError('');
+    setFormLoading(true);
+    try {
+      await userService.disableUser(selectedUser._id);
+      setShowEditModal(false);
+      resetForm();
+      fetchData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete user');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const openEditModal = (user: User) => {
     setSelectedUser(user);
     setFormData({
@@ -321,7 +339,7 @@ export const UserManagement: React.FC = () => {
                         { value: 'ADMIN', label: 'System Administrator (Admin / MEIL)' }
                       ]}
                       value={formData.role}
-                      onChange={(val) => setFormData({...formData, role: val})}
+                      onChange={(val) => setFormData({...formData, role: val, organizationId: ''})}
                     />
                   </div>
                   <div>
@@ -329,10 +347,24 @@ export const UserManagement: React.FC = () => {
                     <PremiumSelect
                       options={[
                         { value: '', label: 'Group Level (No specific org)' },
-                        ...organizations.map(org => ({
-                          value: org._id,
-                          label: `${org.name} (${org.type.replace('_', ' ')})`
-                        }))
+                        ...organizations
+                          .filter(org => {
+                            if (formData.role === 'PROJECT_OFFICER') {
+                              return org.type === 'BUSINESS_UNIT';
+                            }
+                            if (formData.role === 'BUSINESS_UNIT_REVIEWER') {
+                              return org.type === 'SUBSIDIARY';
+                            }
+                            if (formData.role === 'SUBSIDIARY_MANAGER') {
+                              return org.type === 'GROUP';
+                            }
+                            // ADMIN, AUDITOR, GROUP_ESG_TEAM should ideally be at GROUP level
+                            return org.type === 'GROUP';
+                          })
+                          .map(org => ({
+                            value: org._id,
+                            label: `${org.name} (${org.type.replace('_', ' ')})`
+                          }))
                       ]}
                       value={formData.organizationId}
                       onChange={(val) => setFormData({...formData, organizationId: val})}
@@ -367,22 +399,36 @@ export const UserManagement: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-4 pt-10 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => { setShowCreateModal(false); setShowEditModal(false); }}
-                    className="px-6 py-3 rounded-full text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors focus:outline-none"
-                    disabled={formLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-8 py-3 rounded-full bg-brand-navy text-white text-sm font-serif tracking-widest uppercase font-semibold hover:bg-brand-coral hover:shadow-lg hover:-translate-y-0.5 transition-all focus:outline-none"
-                    disabled={formLoading}
-                  >
-                    {formLoading ? 'Saving...' : showCreateModal ? 'Provision User' : 'Save Changes'}
-                  </button>
+                <div className="flex justify-between items-center gap-4 pt-10 mt-6">
+                  {showEditModal ? (
+                    <button
+                      type="button"
+                      onClick={handleDeleteUser}
+                      className="px-6 py-3 rounded-full text-sm font-medium text-red-600 hover:text-white hover:bg-red-600 transition-colors border border-red-200 hover:border-red-600 focus:outline-none"
+                      disabled={formLoading}
+                    >
+                      Delete User
+                    </button>
+                  ) : (
+                    <div></div>
+                  )}
+                  <div className="flex justify-end gap-4">
+                    <button
+                      type="button"
+                      onClick={() => { setShowCreateModal(false); setShowEditModal(false); }}
+                      className="px-6 py-3 rounded-full text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors focus:outline-none"
+                      disabled={formLoading}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-8 py-3 rounded-full bg-brand-navy text-white text-sm font-serif tracking-widest uppercase font-semibold hover:bg-brand-coral hover:shadow-lg hover:-translate-y-0.5 transition-all focus:outline-none"
+                      disabled={formLoading}
+                    >
+                      {formLoading ? 'Saving...' : showCreateModal ? 'Provision User' : 'Save Changes'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
