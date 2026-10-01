@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { getProjects, createProject, type Project } from '../services/projectService';
 import { getOrganizations, type Organization } from '../services/organizationService';
 import { userService, type User } from '../services/userService';
-import { FolderKanban, MapPin, Building2, Search, Filter, X, Plus, Users } from 'lucide-react';
+import { FolderKanban, MapPin, Building2, Search, Filter, X, Plus, Users, FileText, CheckCircle2, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PremiumSelect } from '../components/PremiumSelect';
+import { getRecords, type ESGRecord } from '../services/esgRecordService';
+import { useNavigate } from 'react-router-dom';
 
 const ProjectsPage: React.FC = () => {
   const { user } = useAuth();
@@ -14,17 +16,21 @@ const ProjectsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectRecords, setProjectRecords] = useState<ESGRecord[]>([]);
+  const [loadingRecords, setLoadingRecords] = useState(false);
   const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     projectCode: '',
-    organizationId: '',
+    subsidiaryManagerId: '',
+    buReviewerId: '',
+    assignedPOs: [] as string[],
     location: '',
     sector: '',
     startDate: '',
-    assignedOfficers: [] as string[]
   });
 
   const fetchData = async () => {
@@ -37,7 +43,8 @@ const ProjectsPage: React.FC = () => {
       ]);
       setProjects(projData);
       setOrganizations(orgData);
-      setAvailablePOs(usersData.filter((u: User) => u.role === 'PROJECT_OFFICER'));
+      // Store all users in availablePOs (or rename it to just users, but we keep the state name to minimize changes)
+      setAvailablePOs(usersData);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -49,21 +56,42 @@ const ProjectsPage: React.FC = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (selectedProject) {
+      const fetchRecords = async () => {
+        setLoadingRecords(true);
+        try {
+          const records = await getRecords(1, 100, { projectId: selectedProject._id });
+          setProjectRecords(records);
+        } catch (error) {
+          console.error("Failed to fetch project records:", error);
+        } finally {
+          setLoadingRecords(false);
+        }
+      };
+      fetchRecords();
+    } else {
+      setProjectRecords([]);
+    }
+  }, [selectedProject]);
+
   const filteredProjects = projects.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.projectCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const eligiblePOs = availablePOs.filter(po => po.organizationId?._id === formData.organizationId);
+  const eligiblePOs = availablePOs.filter(u => u.role === 'PROJECT_OFFICER');
+  const subsidiaryManagers = availablePOs.filter(u => u.role === 'SUBSIDIARY_MANAGER');
+  const buReviewers = availablePOs.filter(u => u.role === 'BUSINESS_UNIT_REVIEWER');
 
   const handleTogglePO = (poId: string) => {
     setFormData(prev => {
-      const isSelected = prev.assignedOfficers.includes(poId);
+      const isSelected = prev.assignedPOs.includes(poId);
       return {
         ...prev,
-        assignedOfficers: isSelected 
-          ? prev.assignedOfficers.filter(id => id !== poId)
-          : [...prev.assignedOfficers, poId]
+        assignedPOs: isSelected 
+          ? prev.assignedPOs.filter(id => id !== poId)
+          : [...prev.assignedPOs, poId]
       };
     });
   };
@@ -72,16 +100,19 @@ const ProjectsPage: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     try {
+      const groupOrg = organizations.find(o => o.type === 'GROUP');
+      const allOfficers = [...formData.assignedPOs, formData.subsidiaryManagerId, formData.buReviewerId].filter(Boolean);
+      
       await createProject({
         name: formData.name,
         projectCode: formData.projectCode,
-        organizationId: formData.organizationId,
+        organizationId: groupOrg?._id || '', 
         location: formData.location,
         sector: formData.sector,
-        assignedOfficers: formData.assignedOfficers
+        assignedOfficers: allOfficers
       });
       setIsModalOpen(false);
-      setFormData({ name: '', projectCode: '', organizationId: '', location: '', sector: '', startDate: '', assignedOfficers: [] });
+      setFormData({ name: '', projectCode: '', subsidiaryManagerId: '', buReviewerId: '', location: '', sector: '', startDate: '', assignedPOs: [] });
       await fetchData();
     } catch (error) {
       console.error('Error creating project:', error);
@@ -149,7 +180,11 @@ const ProjectsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredProjects.map(project => (
-            <div key={project._id} className="card p-5 group flex flex-col h-full bg-white/80 backdrop-blur-md hover:bg-white transition-all duration-300">
+            <div 
+              key={project._id} 
+              onClick={() => setSelectedProject(project)}
+              className="card p-5 group flex flex-col h-full bg-white/80 backdrop-blur-md hover:bg-white transition-all duration-300 cursor-pointer hover:shadow-lg hover:-translate-y-1"
+            >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-start gap-3">
                   <div className="p-2.5 bg-brand-coral/10 rounded-xl group-hover:bg-brand-coral/20 transition-colors">
@@ -264,18 +299,26 @@ const ProjectsPage: React.FC = () => {
                   </div>
 
                   <div className="col-span-1 md:col-span-2 pt-4">
-                    <h4 className="text-lg font-serif font-semibold text-brand-navy border-b border-gray-100 pb-2">Location & Organization</h4>
+                    <h4 className="text-lg font-serif font-semibold text-brand-navy border-b border-gray-100 pb-2">Location & Assignments</h4>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Organization Node *</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Subsidiary Manager *</label>
                     <PremiumSelect 
-                      options={organizations
-                        .filter(org => org.type === 'BUSINESS_UNIT')
-                        .map(org => ({ value: org._id, label: `${org.name}` }))}
-                      value={formData.organizationId}
-                      onChange={val => setFormData({...formData, organizationId: val, assignedOfficers: []})}
-                      placeholder="Select Business Unit..."
+                      options={subsidiaryManagers.map(user => ({ value: user._id, label: `${user.name} (${user.employeeId || 'Sys'})` }))}
+                      value={formData.subsidiaryManagerId}
+                      onChange={val => setFormData({...formData, subsidiaryManagerId: val})}
+                      placeholder="Select Subsidiary Manager..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Business Unit Reviewer *</label>
+                    <PremiumSelect 
+                      options={buReviewers.map(user => ({ value: user._id, label: `${user.name} (${user.employeeId || 'Sys'})` }))}
+                      value={formData.buReviewerId}
+                      onChange={val => setFormData({...formData, buReviewerId: val})}
+                      placeholder="Select BU Reviewer..."
                     />
                   </div>
 
@@ -295,7 +338,7 @@ const ProjectsPage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="col-span-1 md:col-span-2">
+                  <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Location *</label>
                     <input 
                       required type="text" 
@@ -306,51 +349,22 @@ const ProjectsPage: React.FC = () => {
                     />
                   </div>
 
-                  {formData.organizationId && (
-                    <div className="col-span-1 md:col-span-2 pt-4">
-                      <h4 className="text-lg font-serif font-semibold text-brand-navy border-b border-gray-100 pb-2 mb-4 flex items-center justify-between">
-                        <span>Assign Project Officers</span>
-                        <span className="text-xs font-sans font-medium text-brand-coral bg-brand-blush px-2 py-1 rounded-full">{formData.assignedOfficers.length} Selected</span>
-                      </h4>
-                      
-                      {eligiblePOs.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {eligiblePOs.map(po => {
-                            const isSelected = formData.assignedOfficers.includes(po._id);
+                  <div className="col-span-1 md:col-span-2 pt-4">
+                    <h4 className="text-lg font-serif font-semibold text-brand-navy border-b border-gray-100 pb-2 mb-4 flex items-center justify-between">
+                      <span>Assign Project Officers</span>
+                      <span className="text-xs font-sans font-medium text-brand-coral bg-brand-blush px-2 py-1 rounded-full">{formData.assignedPOs.length} Selected</span>
+                    </h4>
+                    
+                    {eligiblePOs.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {eligiblePOs.map(po => {
+                          const isSelected = formData.assignedPOs.includes(po._id);
                             
-                            // Check how many active projects this PO currently has
-                            const activeProjects = projects.filter(p => 
-                              p.status === 'ACTIVE' && 
-                              p.assignedOfficers && 
-                              p.assignedOfficers.some(officer => {
-                                // In getProjects, assignedOfficers might be just IDs or objects if we ever populate it.
-                                // But currently it's just IDs since it's not populated in getProjects.
-                                const id = typeof officer === 'string' ? officer : (officer as any)._id;
-                                return id === po._id;
-                              })
-                            ).length;
+                            const isAvailable = true; // Simplified for assigning people directly
                             
-                            const isAvailable = activeProjects === 0;
-
-                            // Check BU limit (Max 10 POs)
-                            const otherActiveProjectsInBU = projects.filter(p => p.status === 'ACTIVE' && p.organizationId?._id === formData.organizationId);
-                            const existingPOsInBU = new Set<string>();
-                            otherActiveProjectsInBU.forEach(p => {
-                              if (p.assignedOfficers) {
-                                p.assignedOfficers.forEach(officer => {
-                                  const id = typeof officer === 'string' ? officer : (officer as any)._id;
-                                  existingPOsInBU.add(id);
-                                });
-                              }
-                            });
-                            
-                            let newPOsCount = 0;
-                            formData.assignedOfficers.forEach(id => {
-                              if (!existingPOsInBU.has(id)) newPOsCount++;
-                            });
-                            
-                            const isBULimitReached = (existingPOsInBU.size + newPOsCount) >= 10;
-                            const canSelect = isSelected || (isAvailable && !isBULimitReached);
+                            let newPOsCount = formData.assignedPOs.length;
+                            const isBULimitReached = newPOsCount >= 10;
+                            const canSelect = isSelected || (!isBULimitReached);
 
                             return (
                               <div 
@@ -400,11 +414,10 @@ const ProjectsPage: React.FC = () => {
                         <div className="bg-gray-50 rounded-xl p-6 text-center border border-dashed border-gray-200">
                           <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                           <p className="text-sm font-medium text-gray-600">No Project Officers found</p>
-                          <p className="text-xs text-gray-400 mt-1">There are no POs registered under this Organization Node.</p>
+                          <p className="text-xs text-gray-400 mt-1">There are no POs registered in the system.</p>
                         </div>
                       )}
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-4 pt-8 mt-8 border-t border-gray-100">
@@ -417,13 +430,168 @@ const ProjectsPage: React.FC = () => {
                   </button>
                   <button 
                     type="submit" 
-                    disabled={saving || !formData.organizationId}
+                    disabled={saving || !formData.subsidiaryManagerId || !formData.buReviewerId}
                     className="px-8 py-3 rounded-full bg-brand-navy text-white text-sm font-serif tracking-widest uppercase font-semibold hover:bg-brand-coral hover:shadow-lg hover:-translate-y-0.5 transition-all focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   >
                     {saving ? 'Creating...' : 'Create Project'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Project Details Modal */}
+      {selectedProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-navy/40 backdrop-blur-sm p-4 sm:p-6">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden border border-white/50 transform transition-all">
+            <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
+              <div>
+                <h3 className="text-2xl font-serif text-brand-navy font-bold tracking-wide">
+                  {selectedProject.name}
+                </h3>
+                <p className="text-sm font-mono text-gray-500 mt-1">{selectedProject.projectCode}</p>
+              </div>
+              <button 
+                onClick={() => setSelectedProject(null)}
+                className="p-2 rounded-full text-gray-400 hover:text-brand-coral hover:bg-brand-blush transition-colors focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Status</p>
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider inline-block mt-1 ${getStatusColor(selectedProject.status)}`}>
+                    {selectedProject.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Sector & Location</p>
+                  <p className="text-sm font-medium text-brand-navy">{selectedProject.sector}</p>
+                  <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                    <MapPin className="h-3 w-3" /> {selectedProject.location}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Assigned Personnel</h4>
+                <div className="space-y-4">
+                  {selectedProject.assignedOfficers && selectedProject.assignedOfficers.length > 0 ? (
+                    <>
+                      {/* Subsidiary Manager */}
+                      {selectedProject.assignedOfficers.filter((o: any) => o.role === 'SUBSIDIARY_MANAGER').map((officer: any) => (
+                        <div key={officer._id} className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                          <div className="h-10 w-10 rounded-full bg-brand-coral/10 text-brand-coral flex items-center justify-center font-bold">
+                            {officer.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-brand-navy">{officer.name}</p>
+                            <p className="text-xs text-gray-500 font-mono">Subsidiary Manager</p>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* BU Reviewer */}
+                      {selectedProject.assignedOfficers.filter((o: any) => o.role === 'BUSINESS_UNIT_REVIEWER').map((officer: any) => (
+                        <div key={officer._id} className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                          <div className="h-10 w-10 rounded-full bg-brand-navy/10 text-brand-navy flex items-center justify-center font-bold">
+                            {officer.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-brand-navy">{officer.name}</p>
+                            <p className="text-xs text-gray-500 font-mono">Business Unit Reviewer</p>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Project Officers */}
+                      <div className="pt-2">
+                        <p className="text-xs text-gray-500 font-medium mb-3">Project Officers ({selectedProject.assignedOfficers.filter((o: any) => o.role === 'PROJECT_OFFICER').length})</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {selectedProject.assignedOfficers.filter((o: any) => o.role === 'PROJECT_OFFICER').map((officer: any) => (
+                            <div key={officer._id} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                              <div className="h-8 w-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs">
+                                {officer.name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-brand-navy">{officer.name}</p>
+                                <p className="text-[10px] text-gray-500">{officer.email}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">No personnel assigned to this project.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* PROJECT AUDIT TRAIL / RECORDS */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Project Evidence & Billing Status</h4>
+                <div className="bg-slate-50 border border-slate-100 rounded-xl overflow-hidden">
+                  {loadingRecords ? (
+                    <div className="p-8 text-center text-gray-400 text-sm">Loading audit records...</div>
+                  ) : projectRecords.length > 0 ? (
+                    <div className="divide-y divide-gray-100">
+                      {projectRecords.map(record => (
+                        <div key={record._id} className="p-4 bg-white hover:bg-slate-50 transition-colors flex items-center justify-between">
+                          <div className="flex-1">
+                            <h5 className="text-sm font-bold text-brand-navy">{(record.indicatorId as any)?.name || 'Unknown Task'}</h5>
+                            <div className="flex items-center gap-4 mt-1.5">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                record.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                                ['SUBMITTED', 'UNDER_REVIEW'].includes(record.status) ? 'bg-amber-100 text-amber-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {record.status.replace('_', ' ')}
+                              </span>
+                              <span className="text-xs text-gray-500 flex items-center gap-1">
+                                <Clock className="h-3 w-3" /> Updated: {new Date(record.updatedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex gap-4 text-xs font-mono text-gray-500">
+                              <p>PO: {record.submittedBy ? 'Submitted' : 'Pending'}</p>
+                              <p>BU: {record.approvedBy ? 'Verified' : 'Pending'}</p>
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={() => navigate(`/reviews/${record._id}`)}
+                            className="flex items-center gap-2 px-4 py-2 bg-brand-navy text-white text-xs font-semibold rounded-full hover:bg-brand-coral transition-colors shadow-sm"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            View Bill / Invoice
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center flex flex-col items-center justify-center bg-white">
+                      <FileText className="h-8 w-8 text-gray-300 mb-2" />
+                      <p className="text-sm font-medium text-gray-500">No submissions found</p>
+                      <p className="text-xs text-gray-400 mt-1">Project Officers have not submitted any data for this project yet.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+            
+            <div className="bg-slate-50 px-8 py-4 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={() => setSelectedProject(null)}
+                className="px-6 py-2.5 rounded-full text-sm font-semibold text-brand-navy bg-white border border-gray-200 hover:bg-gray-50 transition-colors focus:outline-none shadow-sm"
+              >
+                Close Details
+              </button>
             </div>
           </div>
         </div>

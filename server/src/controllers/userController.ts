@@ -95,7 +95,7 @@ export const createUser = async (req: any, res: ExpressRes) => {
     }
     */
 
-    // Auto-generate employeeId based on Role (e.g. MEIL-PO-0001)
+    // Auto-generate employeeId based on Role
     const rolePrefixes: Record<string, string> = {
       'PROJECT_OFFICER': 'PO',
       'BUSINESS_UNIT_REVIEWER': 'BU',
@@ -107,7 +107,6 @@ export const createUser = async (req: any, res: ExpressRes) => {
     
     const prefix = `MEIL-${rolePrefixes[role] || 'EMP'}`;
 
-    // Find all existing employee IDs with this prefix to find the first gap
     const existingUsers = await User.find({ employeeId: { $regex: `^${prefix}-\\d+$` } }, 'employeeId');
     const existingNums = existingUsers
       .map(u => {
@@ -131,6 +130,54 @@ export const createUser = async (req: any, res: ExpressRes) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    // Dynamic Organization Auto-Creation Logic
+    let finalOrgId: any = undefined;
+    
+    // Ensure Root Group exists
+    let meilGroup = await Organization.findOne({ type: 'GROUP' });
+    if (!meilGroup) {
+      meilGroup = await Organization.create({
+        name: 'MEIL Group',
+        type: 'GROUP',
+        code: 'MEIL-GRP',
+        location: 'HQ',
+        status: 'ACTIVE'
+      });
+    }
+
+    if (role === 'ADMIN' || role === 'AUDITOR' || role === 'GROUP_ESG_TEAM') {
+      finalOrgId = meilGroup._id as mongoose.Types.ObjectId;
+    } else if (role === 'SUBSIDIARY_MANAGER') {
+      // Create a subsidiary for this manager
+      const newSub = await Organization.create({
+        name: `${name}'s Subsidiary`,
+        type: 'SUBSIDIARY',
+        parentId: meilGroup._id,
+        code: `SUB-${Date.now().toString().slice(-6)}`,
+        status: 'ACTIVE'
+      });
+      finalOrgId = newSub._id as mongoose.Types.ObjectId;
+    } else if (role === 'BUSINESS_UNIT_REVIEWER') {
+      // organizationId from frontend is actually the Subsidiary Manager's user ID
+      const managerUser = await User.findById(organizationId);
+      if (!managerUser) throw new AppError('Selected Subsidiary Manager not found', 404, 'NOT_FOUND');
+      
+      const newBU = await Organization.create({
+        name: `${name}'s BU`,
+        type: 'BUSINESS_UNIT',
+        parentId: managerUser.organizationId,
+        code: `BU-${Date.now().toString().slice(-6)}`,
+        status: 'ACTIVE'
+      });
+      finalOrgId = newBU._id as mongoose.Types.ObjectId;
+    } else if (role === 'PROJECT_OFFICER') {
+      // organizationId from frontend is actually the BU Reviewer's user ID
+      const managerUser = await User.findById(organizationId);
+      if (!managerUser) throw new AppError('Selected BU Reviewer not found', 404, 'NOT_FOUND');
+      
+      finalOrgId = managerUser.organizationId;
+    }
+
     const user = await User.create({
       name,
       email,
@@ -138,8 +185,8 @@ export const createUser = async (req: any, res: ExpressRes) => {
       mobileNo,
       passwordHash,
       role,
-      organizationId: organizationId || null,
-      isEmailVerified: true, // Since Admin provisions them, bypass OTP
+      organizationId: finalOrgId,
+      isEmailVerified: true,
       status: 'ACTIVE',
       mustChangePassword: true
     });
@@ -207,7 +254,34 @@ export const updateUser = async (req: any, res: ExpressRes) => {
       if (organizationId && !mongoose.Types.ObjectId.isValid(organizationId)) {
         throw new AppError('Invalid organization ID format', 400, 'INVALID_ORG_ID');
       }
-      user.organizationId = organizationId;
+      
+      // Map manager ID to proper organization ID
+      if (!organizationId) {
+        user.organizationId = null as any;
+      } else if (role === 'PROJECT_OFFICER' || role === 'BUSINESS_UNIT_REVIEWER') {
+        const managerUser = await User.findById(organizationId);
+        if (managerUser) {
+           if (role === 'PROJECT_OFFICER') {
+             user.organizationId = managerUser.organizationId;
+           } else if (role === 'BUSINESS_UNIT_REVIEWER') {
+             // For updating a BU reviewer, we might ideally want to move their BU to a new subsidiary, 
+             // but for simplicity, we just keep their current BU or create a new one under the new manager
+             if (!user.organizationId) {
+               const newBU = await Organization.create({
+                 name: `${user.name}'s BU`,
+                 type: 'BUSINESS_UNIT',
+                 parentId: managerUser.organizationId,
+                 code: `BU-${Date.now().toString().slice(-6)}`,
+                 status: 'ACTIVE'
+               });
+               user.organizationId = newBU._id as mongoose.Types.ObjectId;
+             } else {
+               // Update existing BU's parent
+               await Organization.findByIdAndUpdate(user.organizationId, { parentId: managerUser.organizationId });
+             }
+           }
+        }
+      }
     }
 
     if (status) {
@@ -217,35 +291,6 @@ export const updateUser = async (req: any, res: ExpressRes) => {
       }
       user.status = status;
     }
-
-    // Enforce limits for Reviewers and Managers (REMOVED)
-    /*
-    if (user.organizationId && user.status !== 'DISABLED') {
-      if (user.role === 'BUSINESS_UNIT_REVIEWER') {
-        const existingReviewer = await User.findOne({
-          _id: { $ne: user._id },
-          organizationId: user.organizationId,
-          role: 'BUSINESS_UNIT_REVIEWER',
-          status: { $ne: 'DISABLED' }
-        });
-        if (existingReviewer) {
-          throw new AppError('This Business Unit already has an active Reviewer. Maximum 1 Reviewer allowed per BU.', 400, 'BU_REVIEWER_LIMIT_EXCEEDED');
-        }
-      }
-
-      if (user.role === 'SUBSIDIARY_MANAGER') {
-        const existingManager = await User.findOne({
-          _id: { $ne: user._id },
-          organizationId: user.organizationId,
-          role: 'SUBSIDIARY_MANAGER',
-          status: { $ne: 'DISABLED' }
-        });
-        if (existingManager) {
-          throw new AppError('This Subsidiary already has an active Manager. Maximum 1 Manager allowed per Subsidiary.', 400, 'SUB_MANAGER_LIMIT_EXCEEDED');
-        }
-      }
-    }
-    */
 
     await user.save();
 

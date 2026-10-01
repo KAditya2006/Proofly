@@ -202,27 +202,56 @@ const OrganizationPage: React.FC = () => {
               {formData.type !== 'GROUP' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Parent Node *</label>
-                  <select 
-                    required
-                    name="parentId"
-                    value={formData.parentId}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-coral focus:border-transparent outline-none bg-white"
-                  >
-                    <option value="">Select Parent</option>
-                    {organizations
-                      .filter(org => {
-                        if (formData.type === 'SUBSIDIARY') return org.type === 'GROUP';
-                        if (formData.type === 'BUSINESS_UNIT') return org.type === 'SUBSIDIARY';
-                        if (formData.type === 'PROJECT') return org.type === 'BUSINESS_UNIT';
-                        return true;
-                      })
-                      .map(org => (
-                        <option key={org._id} value={org._id}>
-                          {org.name} ({org.type.replace('_', ' ')})
-                        </option>
-                      ))}
-                  </select>
+                  {(() => {
+                    const availableParents = organizations.filter(org => {
+                      if (formData.type === 'SUBSIDIARY') return org.type === 'GROUP';
+                      if (formData.type === 'BUSINESS_UNIT') return org.type === 'SUBSIDIARY';
+                      if (formData.type === 'PROJECT') return org.type === 'BUSINESS_UNIT';
+                      return true;
+                    });
+
+                    const allSubsidiariesFull = formData.type === 'BUSINESS_UNIT' && 
+                      availableParents.length > 0 && 
+                      availableParents.every(org => organizations.filter(child => child.type === 'BUSINESS_UNIT' && child.parentId === org._id).length >= 5);
+
+                    return (
+                      <>
+                        <select 
+                          required
+                          name="parentId"
+                          value={formData.parentId}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-coral focus:border-transparent outline-none bg-white"
+                        >
+                          <option value="">Select Parent</option>
+                          {availableParents.map(org => {
+                            let isDisabled = false;
+                            let labelSuffix = '';
+                            if (formData.type === 'BUSINESS_UNIT') {
+                              const childBUCount = organizations.filter(child => child.type === 'BUSINESS_UNIT' && child.parentId === org._id).length;
+                              if (childBUCount >= 5) {
+                                isDisabled = true;
+                                labelSuffix = ' (Full - Max 5 BUs)';
+                              } else {
+                                labelSuffix = ` - ${childBUCount}/5 BUs space taken`;
+                              }
+                            }
+                            return (
+                              <option key={org._id} value={org._id} disabled={isDisabled}>
+                                {org.name} ({org.type.replace('_', ' ')}{labelSuffix})
+                              </option>
+                            );
+                          })}
+                        </select>
+                        {formData.type === 'BUSINESS_UNIT' && (availableParents.length === 0 || allSubsidiariesFull) && (
+                          <p className="mt-2 text-xs text-red-600 font-medium flex items-center">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            No subsidiaries have space (Max 5 BUs per subsidiary). Create a new Subsidiary first.
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 

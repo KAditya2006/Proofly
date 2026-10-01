@@ -60,6 +60,12 @@ export const UserManagement: React.FC = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (['PROJECT_OFFICER', 'BUSINESS_UNIT_REVIEWER', 'SUBSIDIARY_MANAGER'].includes(formData.role) && !formData.organizationId) {
+      setError('Please select an Organization Context for this role.');
+      return;
+    }
+
     setError('');
     setFormLoading(true);
     try {
@@ -77,6 +83,12 @@ export const UserManagement: React.FC = () => {
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
+    
+    if (['PROJECT_OFFICER', 'BUSINESS_UNIT_REVIEWER', 'SUBSIDIARY_MANAGER'].includes(formData.role) && !formData.organizationId) {
+      setError('Please select an Organization Context for this role.');
+      return;
+    }
+
     setError('');
     setFormLoading(true);
     try {
@@ -342,35 +354,35 @@ export const UserManagement: React.FC = () => {
                       onChange={(val) => setFormData({...formData, role: val, organizationId: ''})}
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Organization Context</label>
-                    <PremiumSelect
-                      options={[
-                        { value: '', label: 'Group Level (No specific org)' },
-                        ...organizations
-                          .filter(org => {
-                            if (formData.role === 'PROJECT_OFFICER') {
-                              return org.type === 'BUSINESS_UNIT';
-                            }
-                            if (formData.role === 'BUSINESS_UNIT_REVIEWER') {
-                              return org.type === 'SUBSIDIARY';
-                            }
-                            if (formData.role === 'SUBSIDIARY_MANAGER') {
-                              return org.type === 'GROUP';
-                            }
-                            // ADMIN, AUDITOR, GROUP_ESG_TEAM should ideally be at GROUP level
-                            return org.type === 'GROUP';
-                          })
-                          .map(org => ({
-                            value: org._id,
-                            label: `${org.name} (${org.type.replace('_', ' ')})`
-                          }))
-                      ]}
-                      value={formData.organizationId}
-                      onChange={(val) => setFormData({...formData, organizationId: val})}
-                      disabled={formData.role === 'ADMIN'}
-                    />
-                  </div>
+                  {(formData.role === 'PROJECT_OFFICER' || formData.role === 'BUSINESS_UNIT_REVIEWER') && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Assigned Manager</label>
+                      <PremiumSelect
+                        options={[
+                          { 
+                            value: '', 
+                            label: '--- Select Manager ---' 
+                          },
+                          ...users
+                            .filter(u => {
+                              if (formData.role === 'PROJECT_OFFICER') {
+                                return u.role === 'BUSINESS_UNIT_REVIEWER' && u.status !== 'DISABLED';
+                              }
+                              if (formData.role === 'BUSINESS_UNIT_REVIEWER') {
+                                return u.role === 'SUBSIDIARY_MANAGER' && u.status !== 'DISABLED';
+                              }
+                              return false;
+                            })
+                            .map(u => ({
+                              value: u._id,
+                              label: `${u.name} (${u.role.replace(/_/g, ' ')})`
+                            }))
+                        ]}
+                        value={formData.organizationId} // Reusing organizationId field for managerId
+                        onChange={(val) => setFormData({...formData, organizationId: val})}
+                      />
+                    </div>
+                  )}
 
                   {showEditModal && (
                     <div>

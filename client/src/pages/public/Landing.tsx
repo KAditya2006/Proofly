@@ -27,16 +27,14 @@ const Landing: React.FC = () => {
         }}
       />
       
-      {/* Top Header / Nav */}
-      <header className="w-full flex justify-between items-center p-6 z-20">
-        <div className="w-32">
-          <ProfilyLogo />
-        </div>
-      </header>
+      {/* Top Header / Nav removed as requested */}
 
       {/* Hero Section */}
       <main className="flex-1 flex flex-col items-center justify-center pb-20 z-10 text-center px-6">
-        <h1 className="hollow-heading text-6xl md:text-8xl mb-8 tracking-widest leading-tight">
+        <div className="flex justify-center mb-12 w-full px-4">
+          <ProfilyLogo className="w-full max-w-[20rem] md:max-w-md" />
+        </div>
+        <h1 className="hollow-heading text-5xl md:text-7xl font-serif text-brand-navy font-bold text-center mb-8 tracking-widest uppercase">
           MEIL ESG360
         </h1>
         

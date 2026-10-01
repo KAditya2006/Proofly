@@ -111,6 +111,7 @@ MEIL Group
 - **Phase 46 (Complete):** Ultra-Premium Minimalist Redesign & Strict Organizational Constraints. Eliminated legacy card-based UI structures on public routes (`Landing`, `Login`) in favor of a flat, typography-forward minimalist aesthetic requested by stakeholders. Implemented a scroll-aware dynamic sticky header across the app layout with an enlarged brand logo. Revamped the `UserManagement` and `Projects` creation modals using a premium `rounded-4xl` design system. Refined the RBAC model by explicitly defining the 'System Administrator' as the MEIL core entity and dropping redundant roles. Implemented strict backend constraints (and visual frontend guards) ensuring 1 Project Officer can only be assigned to 1 active project at a time, and capping Business Units to a maximum of 10 Project Officers. Enabled auto-generation of sequential `ProjectCode` (e.g., PRJ-0001) at the backend controller level.
 - **Phase 47 (Complete):** Complete Premium UI Component Rollout. Addressed remaining legacy UI elements across the application to ensure a cohesive, high-end user experience. Built a custom, fully animated `<PremiumSelect />` component to replace all native browser `<select>` dropdowns in `Projects.tsx` and `UserManagement.tsx`. Developed a stunning, full-screen `<PremiumLoader />` component utilizing concurrent `animate-ping`, `animate-spin`, and `animate-pulse` Tailwind utilities. Integrated the overlay loader across high-latency pages (`AnalyticsDashboard`, `UserManagement`, `AdminControlCenter`) to provide a consistent, branded loading experience in place of generic CSS spinners. Additionally, filtered the organization assignment dropdown in the Projects modal to strictly display `BUSINESS_UNIT` entities, aligning with the hierarchical rule that projects only belong to BUs.
 - **Phase 48 (Complete):** Production Deployment Routing & API Bugfix. Resolved a critical "Failed to Login" error occurring exclusively in the production environment (Render). Identified that the frontend Vite build was statically baking the local development API endpoint (`http://localhost:5000/api`) into the production bundle due to `.env` resolution behavior. Enforced a strict production override in `client/src/services/api.ts` utilizing `import.meta.env.PROD` to unconditionally route all API requests to the relative `/api` endpoint, perfectly aligning with the monolithic Express server's static file serving architecture and ensuring stable cloud connectivity.
+- **Phase 49 (Complete):** Organization Constraints & Role Management Enhancements. Implemented a smart gap-finding algorithm for `employeeId` generation to seamlessly recycle IDs. Updated user soft-deletion to release `email` and `employeeId` to prevent future conflicts. Strengthened role-based `projectId` filtering in the ESG Record API. Added data cleanup utilities (`deleteNonAdmins.ts`, `wipeData.js`) to securely manage test data. Enhanced frontend validation in `Organization` and `UserManagement` to enforce structural limits (max 5 BUs per subsidiary) and mandate organization selection for hierarchical roles. Restructured the `Landing` page design by centering the logo and removing the top header.
 
 ## Frontend Pages
 
@@ -155,6 +156,7 @@ The application includes the following frontend pages, each serving a specific r
 - **TaskBoard**: Collaborative Kanban-style board for tracking team tasks and workflows.
 - **UserManagement**: Interface for creating and managing user accounts, roles, and employee IDs.
 - **ValueChainDashboard**: Dashboard dedicated to tracking and managing ESG metrics across the external value chain.
+- **Welcome**: Initial onboarding or welcome screen for authenticated users.
 
 ### Page Distribution by Organization Role
 
@@ -208,6 +210,7 @@ Based on the organization hierarchy, the pages map to each organizational level 
 - **TaskBoard**: Kanban board for ESG collaboration.
 - **NotificationCenter**: System alerts and messages.
 - **FirstLoginPasswordChange**: Security interstitial requiring password change on first login.
+- **Welcome**: Initial onboarding or welcome screen for authenticated users.
 
 **8. Public / Pre-Authentication Pages (Unauthenticated)**
 - **Landing**, **About**, **Features**, **ESGReporting**, **BRSRReporting**, **Contact**: Semantic marketing pages optimized for search engines.

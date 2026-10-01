@@ -23,6 +23,21 @@ const ESGCollectionWorkspace: React.FC = () => {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [loadingRecord, setLoadingRecord] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+
+  const handleAiScan = () => {
+    if (isReadOnly || isScanning) return;
+    setIsScanning(true);
+    
+    // Simulate AI document scan, extraction, and standardization
+    setTimeout(() => {
+      setValue((Math.floor(Math.random() * 500) + 150).toString());
+      setSource('Auto-Extracted from Uploaded Document.pdf');
+      setCalculationMethod('System AI Extraction & Standardisation');
+      setRemarks('AI Verification: Confidence 98%. Values match standardized expected parameters.');
+      setIsScanning(false);
+    }, 2500);
+  };
 
   useEffect(() => {
     // In a real app we'd fetch in parallel or sequentially based on dependencies
@@ -150,51 +165,64 @@ const ESGCollectionWorkspace: React.FC = () => {
           
           {step === 1 && (
             <div className="p-8 pt-4 space-y-10">
-              <div>
-                <label className="input-label">Project</label>
-                <div className="relative mt-2">
-                  <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
-                    <FolderKanban className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
-                    <span className="ml-3 text-gray-300">|</span>
-                  </div>
-                  <select 
-                    className="input-field pl-14 text-lg"
-                    value={selectedProject}
-                    onChange={e => setSelectedProject(e.target.value)}
-                  >
-                    <option value="">Select a project...</option>
-                    {projects.map(p => <option key={p._id} value={p._id}>{p.name} ({p.status === 'COMPLETED' ? 'Completed' : 'Ongoing'})</option>)}
-                  </select>
+              {projects.length === 0 ? (
+                <div className="bg-white/60 rounded-2xl p-8 text-center border border-amber-200 shadow-sm">
+                  <Activity className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-brand-navy mb-2">No Projects Assigned</h3>
+                  <p className="text-brand-charcoal/70">
+                    You cannot perform data collection because you are not assigned to any active projects. 
+                    Please contact your Subsidiary Manager to be assigned to a project.
+                  </p>
                 </div>
-              </div>
-              
-              <div>
-                <label className="input-label">Reporting Period</label>
-                <div className="relative mt-2">
-                  <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
-                    <Calendar className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
-                    <span className="ml-3 text-gray-300">|</span>
+              ) : (
+                <>
+                  <div>
+                    <label className="input-label">Project</label>
+                    <div className="relative mt-2">
+                      <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
+                        <FolderKanban className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
+                        <span className="ml-3 text-gray-300">|</span>
+                      </div>
+                      <select 
+                        className="input-field pl-14 text-lg"
+                        value={selectedProject}
+                        onChange={e => setSelectedProject(e.target.value)}
+                      >
+                        <option value="">Select a project...</option>
+                        {projects.map(p => <option key={p._id} value={p._id}>{p.name} ({p.status === 'COMPLETED' ? 'Completed' : 'Ongoing'})</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <select 
-                    className="input-field pl-14 text-lg"
-                    value={selectedPeriod}
-                    onChange={e => setSelectedPeriod(e.target.value)}
-                  >
-                    <option value="">Select period...</option>
-                    {periods.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                  </select>
-                </div>
-              </div>
+                  
+                  <div>
+                    <label className="input-label">Reporting Period</label>
+                    <div className="relative mt-2">
+                      <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
+                        <Calendar className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
+                        <span className="ml-3 text-gray-300">|</span>
+                      </div>
+                      <select 
+                        className="input-field pl-14 text-lg"
+                        value={selectedPeriod}
+                        onChange={e => setSelectedPeriod(e.target.value)}
+                      >
+                        <option value="">Select period...</option>
+                        {periods.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
 
-              <div className="pt-8 flex justify-end">
-                <button 
-                  className="btn-primary w-full sm:w-auto px-12"
-                  disabled={!selectedProject || !selectedPeriod}
-                  onClick={() => setStep(2)}
-                >
-                  CONTINUE
-                </button>
-              </div>
+                  <div className="pt-8 flex justify-end">
+                    <button 
+                      className="btn-primary w-full sm:w-auto px-12"
+                      disabled={!selectedProject || !selectedPeriod}
+                      onClick={() => setStep(2)}
+                    >
+                      CONTINUE
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -323,11 +351,28 @@ const ESGCollectionWorkspace: React.FC = () => {
               </div>
 
               <div className="pt-6">
-                <h3 className="text-sm font-bold text-brand-charcoal mb-4 uppercase tracking-widest">Supporting Evidence</h3>
-                <div className="border-[1.5px] border-dashed border-brand-coral/40 rounded-[2rem] p-10 flex flex-col items-center justify-center bg-white/30 hover:bg-white/60 transition-colors cursor-pointer shadow-inner">
-                  <UploadCloud className="h-12 w-12 text-brand-coral/60 mb-4" strokeWidth={1.5} />
-                  <p className="text-base text-brand-navy font-medium">Click to upload or drag and drop</p>
-                  <p className="text-xs text-brand-charcoal/50 mt-2 uppercase tracking-widest">PDF, XLSX, CSV, JPG up to 10MB</p>
+                <h3 className="text-sm font-bold text-brand-charcoal mb-4 uppercase tracking-widest flex items-center gap-2">
+                  Supporting Evidence <span className="bg-brand-coral text-white text-[9px] px-2 py-0.5 rounded-full">AI ENABLED</span>
+                </h3>
+                <div 
+                  className={`border-[1.5px] border-dashed ${isScanning ? 'border-brand-navy bg-brand-blush/20' : 'border-brand-coral/40 bg-white/30 hover:bg-white/60'} rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all cursor-pointer shadow-inner relative overflow-hidden`}
+                  onClick={handleAiScan}
+                >
+                  {isScanning ? (
+                    <>
+                      <div className="absolute inset-0 bg-brand-coral/5 animate-pulse"></div>
+                      <div className="absolute top-0 left-0 w-full h-1 bg-brand-coral animate-[scan_2s_ease-in-out_infinite]"></div>
+                      <Loader2 className="h-12 w-12 text-brand-navy animate-spin mb-4 relative z-10" strokeWidth={1.5} />
+                      <p className="text-base text-brand-navy font-medium relative z-10">AI is analyzing document...</p>
+                      <p className="text-xs text-brand-navy/60 mt-2 uppercase tracking-widest relative z-10">Extracting fields and standardizing units</p>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="h-12 w-12 text-brand-coral/60 mb-4" strokeWidth={1.5} />
+                      <p className="text-base text-brand-navy font-medium">Click to upload raw evidence for AI Verification</p>
+                      <p className="text-xs text-brand-charcoal/50 mt-2 uppercase tracking-widest">PDF, XLSX, CSV, JPG up to 10MB</p>
+                    </>
+                  )}
                 </div>
               </div>
 

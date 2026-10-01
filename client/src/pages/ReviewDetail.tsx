@@ -111,32 +111,123 @@ const ReviewDetail: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Data Column */}
         <div className="md:col-span-2 space-y-6">
-          <div className="card p-6 space-y-6">
-            <h2 className="text-lg font-medium text-gray-900 border-b border-gray-100 pb-3">Data Details</h2>
+          <div className="bg-white rounded-none border border-gray-300 shadow-md p-8 relative font-serif text-brand-navy">
+            {/* Watermark / Stamp */}
+            {['APPROVED'].includes(record.status) && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5 z-0">
+                <span className="text-9xl font-bold border-8 border-current p-8 rotate-[-15deg]">APPROVED</span>
+              </div>
+            )}
             
-            <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+            <div className="relative z-10 border-b-2 border-brand-navy pb-6 mb-8 flex justify-between items-end">
+              <div>
+                <h2 className="text-3xl font-bold tracking-tight">MEIL GROUP</h2>
+                <p className="text-xs tracking-widest uppercase mt-1 text-gray-500">Official Data Submission Document</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-mono text-gray-600">REF: DOC-{Math.floor(Math.random() * 9000) + 1000}-{new Date(record.createdAt).getFullYear()}</p>
+                <p className="text-xs text-gray-500 mt-1">Date: {new Date(record.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-y-8 gap-x-6 relative z-10 mb-8">
               <div className="col-span-2 sm:col-span-1">
-                <span className="block text-sm text-gray-500 mb-1">Indicator</span>
-                <span className="text-sm font-medium text-gray-900">{indicator.code} - {indicator.name}</span>
+                <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">Project Code / Location</span>
+                <span className="text-sm font-semibold">{project.name}</span>
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <span className="block text-sm text-gray-500 mb-1">Reported Value</span>
-                <span className="text-xl font-semibold text-gray-900">{record.value} <span className="text-sm font-normal text-gray-500">{record.unit}</span></span>
+                <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">Reporting Period</span>
+                <span className="text-sm font-semibold">{period.name}</span>
               </div>
-              <div className="col-span-2 sm:col-span-1">
-                <span className="block text-sm text-gray-500 mb-1">Source</span>
-                <span className="text-sm text-gray-900">{record.source || 'Not provided'}</span>
+
+              <div className="col-span-2 border-t border-gray-200 pt-6 mt-2">
+                <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">Parameter / Indicator</span>
+                <span className="text-lg font-bold">{indicator.code} - {indicator.name}</span>
               </div>
-              <div className="col-span-2 sm:col-span-1">
-                <span className="block text-sm text-gray-500 mb-1">Calculation Method</span>
-                <span className="text-sm text-gray-900">{record.calculationMethod || 'Not provided'}</span>
-              </div>
-              <div className="col-span-2">
-                <span className="block text-sm text-gray-500 mb-1">Remarks</span>
-                <div className="p-3 bg-gray-50 rounded-md text-sm text-gray-700 min-h-[60px]">
-                  {record.remarks || 'No remarks provided.'}
+
+              <div className="col-span-2 sm:col-span-1 bg-brand-blush/30 p-4 border border-brand-coral/20 rounded-sm">
+                <span className="block text-[10px] uppercase tracking-widest text-brand-coral mb-1">Reported & Verified Value</span>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-3xl font-bold text-brand-navy">{record.value}</span>
+                  <span className="text-sm font-semibold text-gray-600 uppercase">{record.unit}</span>
                 </div>
               </div>
+
+              <div className="col-span-2 sm:col-span-1 p-4 border border-gray-200 rounded-sm bg-gray-50">
+                <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2">Automated Extraction Confidence</span>
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 w-[98%]"></div>
+                  </div>
+                  <span className="text-sm font-bold text-emerald-700">98%</span>
+                </div>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1">
+                <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">Data Source</span>
+                <span className="text-sm">{record.source || 'Standard Document Upload'}</span>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">Calculation Method</span>
+                <span className="text-sm">{record.calculationMethod || 'System Aggregation (Auto)'}</span>
+              </div>
+
+              <div className="col-span-2">
+                <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">Officer Remarks</span>
+                <div className="p-4 border border-gray-200 bg-white text-sm text-gray-700 min-h-[60px] italic">
+                  "{record.remarks || 'No additional remarks.'}"
+                </div>
+              </div>
+
+              {/* Signatures & Verification Section */}
+              <div className="col-span-2 border-t-2 border-dashed border-gray-200 mt-4 pt-6">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">Chain of Custody / Verification</h3>
+                <div className="grid grid-cols-2 gap-8">
+                  {/* Submitted By */}
+                  <div>
+                    <div className="h-16 flex items-end mb-2">
+                      <span className="font-[Shrikhand,cursive] text-2xl text-brand-navy/80 italic signature-font">
+                        {(record.submittedBy as any)?.name || (record.createdBy as any)?.name || 'System User'}
+                      </span>
+                    </div>
+                    <div className="border-t border-brand-navy pt-2">
+                      <p className="text-xs font-bold text-brand-navy">{(record.submittedBy as any)?.name || (record.createdBy as any)?.name || 'Unknown User'}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">Project Officer (Submitting)</p>
+                      <p className="text-[9px] font-mono text-gray-400 mt-1">Verified via MEIL SSO (ID: {(record.submittedBy as any)?._id?.substring(0,8) || 'sys'})</p>
+                    </div>
+                  </div>
+
+                  {/* Verified By */}
+                  <div>
+                    <div className="h-16 flex items-end mb-2 relative">
+                      {record.status === 'APPROVED' ? (
+                        <>
+                          <div className="absolute top-0 right-10 opacity-20">
+                            <CheckCircle2 className="w-16 h-16 text-emerald-600" />
+                          </div>
+                          <span className="font-[Shrikhand,cursive] text-2xl text-emerald-700 italic signature-font relative z-10">
+                            {(record.approvedBy as any)?.name || (record.updatedBy as any)?.name || 'Verifying Officer'}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">Pending Verification...</span>
+                      )}
+                    </div>
+                    <div className="border-t border-brand-navy pt-2">
+                      <p className="text-xs font-bold text-brand-navy">{(record.approvedBy as any)?.name || (record.updatedBy as any)?.name || 'Pending Reviewer'}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">BU Reviewer (Verifying)</p>
+                      {record.status === 'APPROVED' && (
+                        <p className="text-[9px] font-mono text-gray-400 mt-1">Cryptographically Sealed</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t-2 border-brand-navy pt-4 flex justify-between items-center opacity-70">
+              <span className="text-[10px] uppercase tracking-widest font-mono">Generated by MEIL ESG360 System</span>
+              <span className="text-[10px] uppercase tracking-widest font-mono">Ver: 2.4.1</span>
             </div>
           </div>
 

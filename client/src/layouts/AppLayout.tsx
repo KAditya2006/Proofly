@@ -72,7 +72,6 @@ const AppLayout: React.FC = () => {
     case 'GROUP_ESG_TEAM':
       navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Organization', href: '/organization', icon: Building2 },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'ESG Hub', href: '/esg', icon: Leaf },
         { name: 'BRSR', href: '/brsr/core', icon: FileText },

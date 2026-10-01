@@ -130,7 +130,9 @@ export const getRecordById = async (req: AuthRequest, res: ExpressRes): Promise<
       .populate('reportingPeriodId')
       .populate('evidenceIds')
       .populate('createdBy', 'name email')
-      .populate('updatedBy', 'name email');
+      .populate('updatedBy', 'name email')
+      .populate('submittedBy', 'name email')
+      .populate('approvedBy', 'name email');
 
     if (!record) {
       throw new AppError('Record not found', 404, 'NOT_FOUND');

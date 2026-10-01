@@ -19,8 +19,8 @@ export const getProjects = async (req: any, res: ExpressRes) => {
     
     // RBAC logic for Project visibility
     if (role === 'PROJECT_OFFICER') {
-      // Officers only see projects assigned to them
-      query.assignedOfficers = _id;
+      // Officers only see projects assigned to them (check both ObjectId and string formats)
+      query.assignedOfficers = { $in: [_id, _id.toString()] };
     } else if (role === 'BUSINESS_UNIT_REVIEWER') {
       // Reviewers see projects in their BU
       query.businessUnitId = organizationId;
@@ -37,6 +37,7 @@ export const getProjects = async (req: any, res: ExpressRes) => {
       .populate('organizationId', 'name')
       .populate('businessUnitId', 'name')
       .populate('subsidiaryId', 'name')
+      .populate('assignedOfficers', 'name role email employeeId')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
