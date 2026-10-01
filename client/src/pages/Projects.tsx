@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getProjects, createProject, type Project } from '../services/projectService';
 import { getOrganizations, type Organization } from '../services/organizationService';
 import { userService, type User } from '../services/userService';
-import { FolderKanban, MapPin, Building2, Search, Filter, X, Plus, Users, FileText, CheckCircle2, Clock } from 'lucide-react';
+import { FolderKanban, MapPin, Building2, Search, Filter, X, Plus, Users, FileText, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PremiumSelect } from '../components/PremiumSelect';
 import { getRecords, type ESGRecord } from '../services/esgRecordService';

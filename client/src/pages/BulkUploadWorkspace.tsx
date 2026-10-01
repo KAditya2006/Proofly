@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { previewBulkUpload, confirmBulkUpload } from '../services/bulkUploadService';
-import { getProjects, type Project } from '../services/projectService';
 import { UploadCloud, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 
 const BulkUploadWorkspace: React.FC = () => {
@@ -8,13 +7,9 @@ const BulkUploadWorkspace: React.FC = () => {
   const [preview, setPreview] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
 
   useEffect(() => {
-    getProjects()
-      .then(setProjects)
-      .finally(() => setLoadingProjects(false));
+    // Component mounted
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

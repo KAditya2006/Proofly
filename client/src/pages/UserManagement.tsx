@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '../services/userService';
 import type { User } from '../services/userService';
-import { getOrganizations } from '../services/organizationService';
 import { 
   Users, 
   Plus, 
@@ -15,7 +14,6 @@ import { PremiumLoader } from '../components/PremiumLoader';
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -45,12 +43,8 @@ export const UserManagement: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [usersData, orgsData] = await Promise.all([
-        userService.getUsers(),
-        getOrganizations()
-      ]);
+      const usersData = await userService.getUsers();
       setUsers(usersData);
-      setOrganizations(orgsData);
     } catch (err) {
       console.error('Failed to fetch data', err);
     } finally {
