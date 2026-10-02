@@ -1,4 +1,4 @@
-# MEIL ESG360 — Project Overview
+# Proofly (formerly MEIL ESG360) — Project Overview
 
 ## Product Tagline
 **From Project Data to BRSR-Ready Reporting.**
@@ -113,6 +113,7 @@ MEIL Group
 - **Phase 48 (Complete):** Production Deployment Routing & API Bugfix. Resolved a critical "Failed to Login" error occurring exclusively in the production environment (Render). Identified that the frontend Vite build was statically baking the local development API endpoint (`http://localhost:5000/api`) into the production bundle due to `.env` resolution behavior. Enforced a strict production override in `client/src/services/api.ts` utilizing `import.meta.env.PROD` to unconditionally route all API requests to the relative `/api` endpoint, perfectly aligning with the monolithic Express server's static file serving architecture and ensuring stable cloud connectivity.
 - **Phase 49 (Complete):** Organization Constraints & Role Management Enhancements. Implemented a smart gap-finding algorithm for `employeeId` generation to seamlessly recycle IDs. Updated user soft-deletion to release `email` and `employeeId` to prevent future conflicts. Strengthened role-based `projectId` filtering in the ESG Record API. Added data cleanup utilities (`deleteNonAdmins.ts`, `wipeData.js`) to securely manage test data. Enhanced frontend validation in `Organization` and `UserManagement` to enforce structural limits (max 5 BUs per subsidiary) and mandate organization selection for hierarchical roles. Restructured the `Landing` page design by centering the logo and removing the top header.
 - **Phase 50 (Complete):** Dashboard Project Visibility & Database Connectivity Fixes. Resolved critical database connectivity timeouts (`querySrv ETIMEOUT`) caused by network ISP DNS blocks by reconfiguring the `.env` to use the standard MongoDB replica set URI, bypassing SRV DNS lookups. Fixed a critical backend matching bug in the Project Controller where a Project Officer's `ObjectId` was failing to match legacy string representations in the `assignedOfficers` array, ensuring 100% robust visibility of assigned projects on the Dashboard.
+- **Phase 51 (Complete):** Dynamic Organization Mapping, Read-Only Logic & Automated Role Assignments. Re-engineered the user creation workflow to automatically provision structural units (Subsidiaries, Business Units) derived from their hierarchical managers during role assignment. Enforced project visibility constraints ensuring Project Officers strictly see assigned projects via robust database `ObjectId` and string matching. Formalized a production-ready data destruction script (`wipeData.js`) for secure test environment tear-downs. Continued to enforce the 'Proofly' branding architecture across UI/UX components.
 
 ## Frontend Pages
 
