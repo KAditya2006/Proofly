@@ -22,7 +22,13 @@ export const getSamples = async (req: any, res: Response) => {
     }
 
     const samples = await AssuranceSample.find(query)
-      .populate({ path: 'recordId', populate: { path: 'projectId indicatorId organizationId' } })
+      .populate({ 
+        path: 'recordId', 
+        populate: [
+          { path: 'projectId indicatorId organizationId' },
+          { path: 'evidenceIds' }
+        ] 
+      })
       .populate('selectedBy', 'name role')
       .sort({ createdAt: -1 });
 

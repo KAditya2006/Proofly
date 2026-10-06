@@ -16,7 +16,9 @@ export const getConsolidatedKPIs = async (filters: ConsolidationFilters) => {
   // 1. Determine the relevant Project IDs based on the scope
   let projectIds: mongoose.Types.ObjectId[] = [];
   
-  if (scopeId) {
+  if (scopeLevel === 'PROJECT' && scopeId) {
+    projectIds = [new mongoose.Types.ObjectId(scopeId)];
+  } else if (scopeId) {
     projectIds = await getAuthorizedProjectIds(scopeId);
   }
 
@@ -91,7 +93,11 @@ export const getConsolidatedKPIs = async (filters: ConsolidationFilters) => {
         name: ind.name,
         unit: ind.unit,
         category: ind.category,
-        aggregationMethod: ind.aggregationMethod
+        aggregationMethod: ind.aggregationMethod,
+        isGHG: ind.isGHG,
+        isWater: ind.isWater,
+        isWaste: ind.isWaste,
+        brsrMappings: ind.brsrMappings
       },
       value: Number(Number(finalValue).toFixed(2)),
       contributorsCount: result.count,

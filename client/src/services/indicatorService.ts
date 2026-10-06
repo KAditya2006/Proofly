@@ -8,8 +8,10 @@ export interface ESGIndicator {
   subcategory: string;
   unit: string;
   dataType: 'NUMBER' | 'BOOLEAN' | 'TEXT' | 'PERCENTAGE';
-  description?: string;
   isMandatory: boolean;
+  isGHG?: boolean;
+  isWater?: boolean;
+  isWaste?: boolean;
 }
 
 export const getIndicators = async (): Promise<ESGIndicator[]> => {

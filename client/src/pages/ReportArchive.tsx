@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileText, CheckCircle, Clock, Archive, Edit3, Lock } from 'lucide-react';
+import { Download, FileText, CheckCircle, Clock, Archive, Edit3, Lock, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import ReportPreviewDrawer from '../components/reports/ReportPreviewDrawer';
+import SnapshotTraceabilityModal from '../components/reports/SnapshotTraceabilityModal';
 import { getReports, submitReportReview, finalizeReport, exportReport, getEvidencePack } from '../services/reportService';
 
 const ReportArchive: React.FC = () => {
@@ -12,6 +13,7 @@ const ReportArchive: React.FC = () => {
   
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showTraceability, setShowTraceability] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -34,6 +36,11 @@ const ReportArchive: React.FC = () => {
     setShowPreview(true);
   };
 
+  const openTraceability = (report: any) => {
+    setSelectedReport(report);
+    setShowTraceability(true);
+  };
+
   const handleAction = async (report: any, action: string) => {
     try {
       if (action === 'submit') {
@@ -45,8 +52,23 @@ const ReportArchive: React.FC = () => {
           fetchReports();
         }
       } else if (action === 'export-pdf') {
-        await exportReport(report._id, 'PDF');
-        alert('Export job started. You will be notified when the PDF is ready.');
+        const blob = await exportReport(report._id, 'PDF');
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `MEIL_ESG_Report_${report.version}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+      } else if (action === 'export-xlsx') {
+        const blob = await exportReport(report._id, 'XLSX');
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `MEIL_ESG_Report_${report.version}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
       } else if (action === 'evidence-pack') {
         await getEvidencePack(report._id);
         alert('Evidence pack generation started.');
@@ -152,7 +174,13 @@ const ReportArchive: React.FC = () => {
                         <button onClick={() => handleAction(report, 'export-pdf')} className="text-brand-navy hover:text-brand-navy inline-flex items-center gap-1">
                           <Download className="h-4 w-4" /> PDF
                         </button>
-                        <button onClick={() => handleAction(report, 'evidence-pack')} className="text-gray-600 hover:text-gray-900 inline-flex items-center gap-1 border border-gray-200 px-2 py-1 rounded">
+                        <button onClick={() => handleAction(report, 'export-xlsx')} className="text-green-600 hover:text-green-700 inline-flex items-center gap-1 ml-2">
+                          <Download className="h-4 w-4" /> XLSX
+                        </button>
+                        <button onClick={() => openTraceability(report)} className="text-brand-pink hover:text-brand-pink inline-flex items-center gap-1 ml-2 border px-2 py-1 rounded border-gray-200">
+                          <Search className="h-4 w-4" /> Traceability
+                        </button>
+                        <button onClick={() => handleAction(report, 'evidence-pack')} className="text-gray-600 hover:text-gray-900 inline-flex items-center gap-1 border border-gray-200 px-2 py-1 rounded ml-2">
                           Evidence Pack
                         </button>
                       </>
@@ -168,6 +196,12 @@ const ReportArchive: React.FC = () => {
       <ReportPreviewDrawer
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
+        report={selectedReport}
+      />
+      
+      <SnapshotTraceabilityModal
+        isOpen={showTraceability}
+        onClose={() => setShowTraceability(false)}
         report={selectedReport}
       />
     </div>

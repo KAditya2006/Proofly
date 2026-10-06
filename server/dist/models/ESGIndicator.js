@@ -62,8 +62,11 @@ const ESGIndicatorSchema = new mongoose_1.Schema({
         default: 'SUM'
     },
     mandatory: { type: Boolean, default: false },
+    isGHG: { type: Boolean, default: false },
+    isWater: { type: Boolean, default: false },
+    isWaste: { type: Boolean, default: false },
     validationRules: [{
-            type: { type: String, enum: ['NUMERIC_MIN', 'NUMERIC_MAX', 'REQUIRED', 'LOGICAL'] },
+            type: { type: String, enum: ['NUMERIC_MIN', 'NUMERIC_MAX', 'REQUIRED', 'LOGICAL', 'VARIANCE_MAX'] },
             value: { type: mongoose_1.Schema.Types.Mixed },
             expression: { type: String },
             errorMessage: { type: String }

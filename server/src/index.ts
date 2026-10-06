@@ -8,6 +8,7 @@ import { connectDB } from './config/db';
 import { requestCorrelation, CorrelatedRequest } from './middleware/requestCorrelation';
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
+import { checkSLAAndNotify } from './services/slaService';
 
 dotenv.config();
 
@@ -194,6 +195,12 @@ const startServer = async () => {
     await connectDB();
     server = app.listen(port, () => {
       console.log(`[server]: Server is running at http://localhost:${port} in ${process.env.NODE_ENV || 'development'} mode`);
+      
+      // Start background SLA monitor (runs every 1 hour)
+      const SLA_INTERVAL = 60 * 60 * 1000;
+      setInterval(() => {
+        checkSLAAndNotify().catch(err => console.error('SLA Background Task Error:', err));
+      }, SLA_INTERVAL);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

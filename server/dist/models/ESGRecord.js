@@ -47,6 +47,21 @@ const ESGRecordSchema = new mongoose_1.Schema({
     remarks: { type: String },
     evidenceIds: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Evidence' }],
     comments: { type: String },
+    // GHG Calculation specific fields
+    activityData: { type: Number },
+    activityUnit: { type: String },
+    emissionFactor: { type: Number },
+    emissionFactorSource: { type: String },
+    emissionFactorYear: { type: String },
+    co2eResult: { type: Number },
+    // Water Domain fields
+    waterWithdrawal: { type: Number },
+    waterDischarge: { type: Number },
+    waterConsumption: { type: Number },
+    // Waste Domain fields
+    wasteCategory: { type: String, enum: ['HAZARDOUS', 'NON_HAZARDOUS'] },
+    wasteDisposalMethod: { type: String, enum: ['RECYCLED', 'REUSED', 'RECOVERED', 'DISPOSED', 'LANDFILLED', 'INCINERATED', 'OTHER'] },
+    wasteQuantity: { type: Number },
     // External Integration Provenance Fields
     sourceSystem: { type: String, trim: true },
     sourceRecordId: { type: String, trim: true },
@@ -61,9 +76,11 @@ const ESGRecordSchema = new mongoose_1.Schema({
     },
     correctionReason: { type: String },
     submittedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
+    submittedAt: { type: Date },
     approvedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     updatedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
+    slaAlertSent: { type: Boolean, default: false },
 }, { timestamps: true });
 // High-value production indexes
 ESGRecordSchema.index({ projectId: 1, indicatorId: 1, reportingPeriodId: 1 }, { unique: true });

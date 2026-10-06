@@ -20,6 +20,24 @@ const ESGCollectionWorkspace: React.FC = () => {
   const [calculationMethod, setCalculationMethod] = useState('');
   const [remarks, setRemarks] = useState('');
   
+  // GHG fields
+  const [activityData, setActivityData] = useState('');
+  const [activityUnit, setActivityUnit] = useState('');
+  const [emissionFactor, setEmissionFactor] = useState('');
+  const [emissionFactorSource, setEmissionFactorSource] = useState('');
+  const [emissionFactorYear, setEmissionFactorYear] = useState('');
+  const [co2eResult, setCo2eResult] = useState<number | null>(null);
+  
+  // Water fields
+  const [waterWithdrawal, setWaterWithdrawal] = useState('');
+  const [waterDischarge, setWaterDischarge] = useState('');
+  const [waterConsumption, setWaterConsumption] = useState<number | null>(null);
+
+  // Waste fields
+  const [wasteCategory, setWasteCategory] = useState('');
+  const [wasteDisposalMethod, setWasteDisposalMethod] = useState('');
+  const [wasteQuantity, setWasteQuantity] = useState('');
+  
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [loadingRecord, setLoadingRecord] = useState(false);
@@ -59,11 +77,23 @@ const ESGCollectionWorkspace: React.FC = () => {
           if (records && records.length > 0) {
             const record = records[0];
             setExistingRecord(record);
-            setValue(record.value.toString());
+            setValue(record.value?.toString() || '');
             setUnit(record.unit);
             setSource(record.source || '');
             setCalculationMethod(record.calculationMethod || '');
             setRemarks(record.remarks || '');
+            setActivityData(record.activityData?.toString() || '');
+            setActivityUnit(record.activityUnit || '');
+            setEmissionFactor(record.emissionFactor?.toString() || '');
+            setEmissionFactorSource(record.emissionFactorSource || '');
+            setEmissionFactorYear(record.emissionFactorYear || '');
+            setCo2eResult(record.co2eResult || null);
+            setWaterWithdrawal(record.waterWithdrawal?.toString() || '');
+            setWaterDischarge(record.waterDischarge?.toString() || '');
+            setWaterConsumption(record.waterConsumption || null);
+            setWasteCategory(record.wasteCategory || '');
+            setWasteDisposalMethod(record.wasteDisposalMethod || '');
+            setWasteQuantity(record.wasteQuantity?.toString() || '');
             
             if (['SUBMITTED', 'UNDER_REVIEW', 'APPROVED'].includes(record.status)) {
               setIsReadOnly(true);
@@ -76,6 +106,18 @@ const ESGCollectionWorkspace: React.FC = () => {
             setSource('');
             setCalculationMethod('');
             setRemarks('');
+            setActivityData('');
+            setActivityUnit('');
+            setEmissionFactor('');
+            setEmissionFactorSource('');
+            setEmissionFactorYear('');
+            setCo2eResult(null);
+            setWaterWithdrawal('');
+            setWaterDischarge('');
+            setWaterConsumption(null);
+            setWasteCategory('');
+            setWasteDisposalMethod('');
+            setWasteQuantity('');
             setIsReadOnly(false);
           }
         }).finally(() => {
@@ -89,16 +131,37 @@ const ESGCollectionWorkspace: React.FC = () => {
     try {
       setSaving(true);
       const { createRecord, updateRecord } = await import('../services/esgRecordService');
+      const currentInd = indicators.find(i => i._id === selectedIndicator);
+      const isGHG = currentInd?.isGHG;
+      const isWater = currentInd?.isWater;
+      const isWaste = currentInd?.isWaste;
+      
       const data = {
         projectId: selectedProject,
         reportingPeriodId: selectedPeriod,
         indicatorId: selectedIndicator,
-        value: Number(value) || value,
+        value: (isGHG || isWater || isWaste) ? undefined : (Number(value) || value), // Value is calculated on backend
         unit,
         source,
         calculationMethod,
         remarks,
-        evidenceIds: []
+        evidenceIds: [],
+        ...(isGHG && {
+          activityData: Number(activityData),
+          activityUnit,
+          emissionFactor: Number(emissionFactor),
+          emissionFactorSource,
+          emissionFactorYear,
+        }),
+        ...(isWater && {
+          waterWithdrawal: Number(waterWithdrawal),
+          waterDischarge: Number(waterDischarge)
+        }),
+        ...(isWaste && {
+          wasteCategory: wasteCategory as any,
+          wasteDisposalMethod: wasteDisposalMethod as any,
+          wasteQuantity: Number(wasteQuantity)
+        })
       };
 
       if (existingRecord) {
@@ -142,6 +205,21 @@ const ESGCollectionWorkspace: React.FC = () => {
   };
 
   const currentIndicator = indicators.find(i => i._id === selectedIndicator);
+
+  // Auto-calculate rough CO2e on frontend for preview if they type
+  useEffect(() => {
+    if (currentIndicator?.isGHG && activityData && emissionFactor) {
+      setCo2eResult(Number(activityData) * Number(emissionFactor));
+    } else {
+      setCo2eResult(null);
+    }
+    
+    if (currentIndicator?.isWater && waterWithdrawal && waterDischarge) {
+      setWaterConsumption(Number(waterWithdrawal) - Number(waterDischarge));
+    } else {
+      setWaterConsumption(null);
+    }
+  }, [activityData, emissionFactor, waterWithdrawal, waterDischarge, currentIndicator]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 py-4">
@@ -302,32 +380,211 @@ const ESGCollectionWorkspace: React.FC = () => {
                   <p className="text-brand-navy font-medium">Loading existing record...</p>
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-                <div>
-                  <label className="input-label">Value</label>
-                  <div className="mt-2">
-                    <input 
-                      type={currentIndicator?.dataType === 'NUMBER' ? 'number' : 'text'}
-                      className="input-field text-lg" 
-                      value={value}
-                      onChange={e => setValue(e.target.value)}
-                      placeholder="Enter value"
-                      disabled={isReadOnly}
-                    />
+              {currentIndicator?.isGHG ? (
+                <div className="bg-brand-coral/5 border border-brand-coral/20 rounded-2xl p-6 mb-8 space-y-6">
+                  <h3 className="text-xl font-serif text-brand-navy border-b border-brand-coral/10 pb-4">GHG Calculation Engine (Scope 1/2/3)</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <label className="input-label">Activity Data</label>
+                      <input 
+                        type="number" 
+                        className="input-field mt-2 text-lg" 
+                        value={activityData}
+                        onChange={e => setActivityData(e.target.value)}
+                        placeholder="e.g. 5000"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                    <div>
+                      <label className="input-label">Activity Unit</label>
+                      <input 
+                        type="text" 
+                        className="input-field mt-2 text-lg" 
+                        value={activityUnit}
+                        onChange={e => setActivityUnit(e.target.value)}
+                        placeholder="e.g. kWh, Litres, Tonnes"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                    <div>
+                      <label className="input-label">Emission Factor</label>
+                      <input 
+                        type="number" 
+                        className="input-field mt-2 text-lg" 
+                        value={emissionFactor}
+                        onChange={e => setEmissionFactor(e.target.value)}
+                        placeholder="e.g. 0.71"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="input-label">Factor Source</label>
+                        <input 
+                          type="text" 
+                          className="input-field mt-2" 
+                          value={emissionFactorSource}
+                          onChange={e => setEmissionFactorSource(e.target.value)}
+                          placeholder="e.g. CEA India"
+                          disabled={isReadOnly}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">Factor Year</label>
+                        <input 
+                          type="text" 
+                          className="input-field mt-2" 
+                          value={emissionFactorYear}
+                          onChange={e => setEmissionFactorYear(e.target.value)}
+                          placeholder="e.g. 2023"
+                          disabled={isReadOnly}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 p-6 bg-white/60 rounded-xl flex items-center justify-between shadow-sm">
+                    <div>
+                      <h4 className="text-sm font-bold text-brand-charcoal uppercase tracking-wider mb-1">Calculated Emissions</h4>
+                      <p className="text-xs text-brand-charcoal/60">Activity Data × Emission Factor</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-3xl font-bold text-brand-coral">
+                        {co2eResult !== null ? co2eResult.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0.00'}
+                      </span>
+                      <span className="ml-2 text-brand-navy font-semibold">tCO₂e</span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="input-label">Unit</label>
-                  <div className="mt-2">
-                    <input 
-                      type="text" 
-                      className="input-field text-lg text-brand-charcoal/50" 
-                      value={unit}
-                      readOnly
-                    />
+              ) : currentIndicator?.isWater ? (
+                <div className="bg-blue-50/50 border border-blue-200 rounded-2xl p-6 mb-8 space-y-6">
+                  <h3 className="text-xl font-serif text-brand-navy border-b border-blue-200/50 pb-4">Water Balance Engine</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <label className="input-label">Total Water Withdrawal</label>
+                      <input 
+                        type="number" 
+                        className="input-field mt-2 text-lg border-blue-200 focus:border-blue-400" 
+                        value={waterWithdrawal}
+                        onChange={e => setWaterWithdrawal(e.target.value)}
+                        placeholder="e.g. 10000"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                    <div>
+                      <label className="input-label">Total Water Discharge</label>
+                      <input 
+                        type="number" 
+                        className="input-field mt-2 text-lg border-blue-200 focus:border-blue-400" 
+                        value={waterDischarge}
+                        onChange={e => setWaterDischarge(e.target.value)}
+                        placeholder="e.g. 2000"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-8 p-6 bg-white/80 rounded-xl flex items-center justify-between shadow-sm">
+                    <div>
+                      <h4 className="text-sm font-bold text-brand-charcoal uppercase tracking-wider mb-1">Net Consumption</h4>
+                      <p className="text-xs text-brand-charcoal/60">Withdrawal - Discharge</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-3xl font-bold text-blue-600">
+                        {waterConsumption !== null ? waterConsumption.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0.00'}
+                      </span>
+                      <span className="ml-2 text-brand-navy font-semibold">{unit || 'Unit'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : currentIndicator?.isWaste ? (
+                <div className="bg-emerald-50/50 border border-emerald-200 rounded-2xl p-6 mb-8 space-y-6">
+                  <h3 className="text-xl font-serif text-brand-navy border-b border-emerald-200/50 pb-4">Waste Categorization Engine</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <label className="input-label">Waste Category</label>
+                      <select 
+                        className="input-field mt-2 text-lg border-emerald-200 focus:border-emerald-400" 
+                        value={wasteCategory}
+                        onChange={e => setWasteCategory(e.target.value)}
+                        disabled={isReadOnly}
+                      >
+                        <option value="">Select Category...</option>
+                        <option value="HAZARDOUS">Hazardous</option>
+                        <option value="NON_HAZARDOUS">Non-Hazardous</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="input-label">Disposal Method</label>
+                      <select 
+                        className="input-field mt-2 text-lg border-emerald-200 focus:border-emerald-400" 
+                        value={wasteDisposalMethod}
+                        onChange={e => setWasteDisposalMethod(e.target.value)}
+                        disabled={isReadOnly}
+                      >
+                        <option value="">Select Method...</option>
+                        <option value="RECYCLED">Recycled</option>
+                        <option value="REUSED">Reused</option>
+                        <option value="RECOVERED">Recovered</option>
+                        <option value="DISPOSED">Disposed</option>
+                        <option value="LANDFILLED">Landfilled</option>
+                        <option value="INCINERATED">Incinerated</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="input-label">Total Quantity</label>
+                      <input 
+                        type="number" 
+                        className="input-field mt-2 text-lg border-emerald-200 focus:border-emerald-400" 
+                        value={wasteQuantity}
+                        onChange={e => setWasteQuantity(e.target.value)}
+                        placeholder="e.g. 50"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                    <div>
+                      <label className="input-label">Unit</label>
+                      <input 
+                        type="text" 
+                        className="input-field mt-2 text-lg border-emerald-200 bg-emerald-50 text-emerald-900" 
+                        value={unit || 'Metric Tons'}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                  <div>
+                    <label className="input-label">Value</label>
+                    <div className="mt-2">
+                      <input 
+                        type={currentIndicator?.dataType === 'NUMBER' ? 'number' : 'text'}
+                        className="input-field text-lg" 
+                        value={value}
+                        onChange={e => setValue(e.target.value)}
+                        placeholder="Enter value"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="input-label">Unit</label>
+                    <div className="mt-2">
+                      <input 
+                        type="text" 
+                        className="input-field text-lg text-brand-charcoal/50" 
+                        value={unit}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-10">
                 <div>
@@ -391,7 +648,7 @@ const ESGCollectionWorkspace: React.FC = () => {
                       <button className="btn-secondary flex items-center justify-center gap-2 w-full sm:w-auto uppercase tracking-widest px-8" onClick={handleSaveDraft} disabled={saving || loadingRecord}>
                         <Save className="h-4 w-4" /> {saving ? 'SAVING...' : (existingRecord ? 'UPDATE DRAFT' : 'SAVE DRAFT')}
                       </button>
-                      <button className="btn-primary w-full sm:w-auto px-12" disabled={!value || saving || loadingRecord} onClick={handleSubmitRecord}>
+                      <button className="btn-primary w-full sm:w-auto px-12" disabled={(currentIndicator?.isGHG ? (!activityData || !emissionFactor) : !value) || saving || loadingRecord} onClick={handleSubmitRecord}>
                         SUBMIT RECORD
                       </button>
                     </>

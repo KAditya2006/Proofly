@@ -108,6 +108,28 @@ const validateRecord = async (record) => {
                     console.error('Error evaluating logical validation rule', err);
                 }
             }
+            if (rule.type === 'VARIANCE_MAX') {
+                try {
+                    const ESGRecordModel = mongoose_1.default.model('ESGRecord');
+                    // Find the most recent approved record for the same project and indicator (assuming previous period)
+                    const previousRecord = await ESGRecordModel.findOne({
+                        indicatorId: record.indicatorId,
+                        projectId: record.projectId,
+                        reportingPeriodId: { $ne: record.reportingPeriodId },
+                        status: 'APPROVED'
+                    }).sort({ createdAt: -1 });
+                    if (previousRecord && !isNaN(Number(previousRecord.value)) && !isNaN(numValue) && Number(previousRecord.value) !== 0) {
+                        const prevVal = Number(previousRecord.value);
+                        const variance = Math.abs((numValue - prevVal) / prevVal) * 100;
+                        if (variance > Number(rule.value)) {
+                            errors.push(rule.errorMessage || `Value variance (${variance.toFixed(2)}%) exceeds the maximum allowed (${rule.value}% YoY) compared to previous period.`);
+                        }
+                    }
+                }
+                catch (err) {
+                    console.error('Error evaluating YoY variance validation rule', err);
+                }
+            }
         }
     }
     return {

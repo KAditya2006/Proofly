@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IValidationRule {
-  type: 'NUMERIC_MIN' | 'NUMERIC_MAX' | 'REQUIRED' | 'LOGICAL';
+  type: 'NUMERIC_MIN' | 'NUMERIC_MAX' | 'REQUIRED' | 'LOGICAL' | 'VARIANCE_MAX';
   value?: number | string;
   expression?: string; // For complex logical validations
   errorMessage: string;
@@ -19,6 +19,9 @@ export interface IESGIndicator extends Document {
   frequency: 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
   aggregationMethod: 'SUM' | 'AVERAGE' | 'COUNT' | 'RATIO' | 'PERCENTAGE' | 'INTENSITY';
   mandatory: boolean;
+  isGHG?: boolean;
+  isWater?: boolean;
+  isWaste?: boolean;
   validationRules: IValidationRule[];
   brsrMappings: {
     section: string;
@@ -56,8 +59,11 @@ const ESGIndicatorSchema: Schema = new Schema({
     default: 'SUM'
   },
   mandatory: { type: Boolean, default: false },
+  isGHG: { type: Boolean, default: false },
+  isWater: { type: Boolean, default: false },
+  isWaste: { type: Boolean, default: false },
   validationRules: [{
-    type: { type: String, enum: ['NUMERIC_MIN', 'NUMERIC_MAX', 'REQUIRED', 'LOGICAL'] },
+    type: { type: String, enum: ['NUMERIC_MIN', 'NUMERIC_MAX', 'REQUIRED', 'LOGICAL', 'VARIANCE_MAX'] },
     value: { type: Schema.Types.Mixed },
     expression: { type: String },
     errorMessage: { type: String }

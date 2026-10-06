@@ -31,9 +31,33 @@ export const getPendingReviews = async (req: any, res: ExpressRes) => {
       .populate('projectId', 'name projectCode')
       .populate('reportingPeriodId', 'name financialYear')
       .populate('submittedBy', 'name email')
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();
 
-    res.json(reviews);
+    const SLA_HOURS = Number(process.env.SLA_HOURS || 48);
+    const now = new Date();
+
+    const reviewsWithSLA = reviews.map((r: any) => {
+      let slaStatus = 'ON_TIME';
+      let ageHours = 0;
+
+      if (r.submittedAt) {
+        ageHours = (now.getTime() - new Date(r.submittedAt).getTime()) / (1000 * 60 * 60);
+        if (ageHours > SLA_HOURS) {
+          slaStatus = 'OVERDUE';
+        } else if (ageHours > SLA_HOURS * 0.75) {
+          slaStatus = 'APPROACHING_SLA';
+        }
+      }
+
+      return {
+        ...r,
+        slaStatus,
+        ageHours
+      };
+    });
+
+    res.json(reviewsWithSLA);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error fetching pending reviews' });

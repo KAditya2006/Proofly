@@ -51,8 +51,8 @@ export const compareReports = async (id: string, compareWithId?: string) => {
   return response.data;
 };
 
-export const getReportLineage = async (id: string, kpiId: string) => {
-  const response = await api.get(`/reports/${id}/lineage?kpiId=${kpiId}`);
+export const getReportLineage = async (id: string) => {
+  const response = await api.get(`/reports/${id}/lineage`);
   return response.data;
 };
 
@@ -62,6 +62,8 @@ export const getEvidencePack = async (id: string) => {
 };
 
 export const exportReport = async (id: string, format: string) => {
-  const response = await api.get(`/reports/${id}/export?format=${format}`);
+  const response = await api.get(`/reports/${id}/export?format=${format}`, {
+    responseType: 'blob'
+  });
   return response.data;
 };

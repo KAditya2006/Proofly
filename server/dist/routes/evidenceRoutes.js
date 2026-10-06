@@ -22,7 +22,8 @@ const storage = multer_1.default.diskStorage({
     },
     filename(req, file, cb) {
         // Sanitize filename to prevent directory traversal and remove dangerous chars
-        const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const originalName = file?.originalname || 'unknown_file';
+        const sanitizedName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
         cb(null, `${Date.now()}-${sanitizedName}`);
     }
 });
@@ -32,7 +33,8 @@ const upload = (0, multer_1.default)({
     fileFilter: (req, file, cb) => {
         const allowedTypes = /pdf|csv|xlsx|xls|doc|docx|jpg|jpeg|png/;
         const dangerousTypes = /exe|sh|bat|cmd|js|ts|php|py/;
-        const ext = path_1.default.extname(file.originalname).toLowerCase();
+        const originalName = file?.originalname || 'unknown_file.txt';
+        const ext = path_1.default.extname(originalName).toLowerCase();
         if (dangerousTypes.test(ext)) {
             return cb(new Error('Executable files are strictly prohibited.'), false);
         }
@@ -53,4 +55,6 @@ router.get('/coverage', evidenceController_1.getCoverage);
 router.get('/gaps', evidenceController_1.getGaps);
 router.route('/:id')
     .delete((0, authMiddleware_1.authorize)('PROJECT_OFFICER'), evidenceController_1.deleteEvidence);
+router.route('/:id/verify')
+    .post((0, authMiddleware_1.authorize)('ADMIN', 'AUDITOR', 'GROUP_ESG_TEAM', 'BUSINESS_UNIT_REVIEWER'), evidenceController_1.verifyEvidence);
 exports.default = router;

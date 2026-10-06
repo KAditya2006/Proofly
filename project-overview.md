@@ -18,6 +18,45 @@ The system must support reporting at:
 - **Database:** MongoDB, Mongoose
 - **Security:** JWT authentication, Role-based access control, bcrypt for password hashing
 
+## Project Directory Structure
+
+```text
+BPUT2026/
+├── client/                 # Frontend React Application
+│   ├── public/             # Static assets
+│   ├── src/
+│   │   ├── assets/         # Images, icons, and SVG files
+│   │   ├── components/     # Reusable React components (UI elements)
+│   │   ├── context/        # React Context providers (Auth, Theme)
+│   │   ├── layouts/        # Page layout wrappers (Sidebar, Headers)
+│   │   ├── pages/          # Individual route views (Dashboards, Workspaces)
+│   │   ├── services/       # API integration functions (Axios clients)
+│   │   ├── App.tsx         # Main application routing entry point
+│   │   ├── index.css       # Global Tailwind CSS configurations
+│   │   └── main.tsx        # React DOM rendering entry
+│   ├── package.json        # Frontend dependencies and scripts
+│   └── vite.config.ts      # Vite bundler configuration
+│
+├── server/                 # Backend Node.js/Express Application
+│   ├── src/
+│   │   ├── config/         # Environment, Database, and service configurations
+│   │   ├── controllers/    # Request handlers for API routes
+│   │   ├── middleware/     # Custom Express middlewares (Auth, Error handling)
+│   │   ├── models/         # Mongoose database schemas
+│   │   ├── routes/         # API endpoint definitions
+│   │   ├── scripts/        # Utility scripts (Seeding, DB operations)
+│   │   ├── services/       # Core business logic and integrations
+│   │   ├── utils/          # Helper functions and shared utilities
+│   │   └── index.ts        # Express server entry point
+│   ├── tests/              # Jest integration and unit tests
+│   └── package.json        # Backend dependencies and scripts
+│
+├── package.json            # Root workspace package (concurrently scripts)
+├── README.md               # Quick start documentation
+└── SEO_SETUP.md            # SEO and Search Console manual instructions
+```
+
+
 ## Organization Hierarchy
 The platform handles hierarchical data collection and consolidation mimicking the corporate structure:
 
@@ -114,6 +153,8 @@ MEIL Group
 - **Phase 49 (Complete):** Organization Constraints & Role Management Enhancements. Implemented a smart gap-finding algorithm for `employeeId` generation to seamlessly recycle IDs. Updated user soft-deletion to release `email` and `employeeId` to prevent future conflicts. Strengthened role-based `projectId` filtering in the ESG Record API. Added data cleanup utilities (`deleteNonAdmins.ts`, `wipeData.js`) to securely manage test data. Enhanced frontend validation in `Organization` and `UserManagement` to enforce structural limits (max 5 BUs per subsidiary) and mandate organization selection for hierarchical roles. Restructured the `Landing` page design by centering the logo and removing the top header.
 - **Phase 50 (Complete):** Dashboard Project Visibility & Database Connectivity Fixes. Resolved critical database connectivity timeouts (`querySrv ETIMEOUT`) caused by network ISP DNS blocks by reconfiguring the `.env` to use the standard MongoDB replica set URI, bypassing SRV DNS lookups. Fixed a critical backend matching bug in the Project Controller where a Project Officer's `ObjectId` was failing to match legacy string representations in the `assignedOfficers` array, ensuring 100% robust visibility of assigned projects on the Dashboard.
 - **Phase 51 (Complete):** Dynamic Organization Mapping, Read-Only Logic & Automated Role Assignments. Re-engineered the user creation workflow to automatically provision structural units (Subsidiaries, Business Units) derived from their hierarchical managers during role assignment. Enforced project visibility constraints ensuring Project Officers strictly see assigned projects via robust database `ObjectId` and string matching. Formalized a production-ready data destruction script (`wipeData.js`) for secure test environment tear-downs. Continued to enforce the 'Proofly' branding architecture across UI/UX components.
+- **Phase 52 (Complete):** Comprehensive BPUT PS08 KT Compliance & GHG Calculation Engine. Performed a deep audit against the original hackathon KT requirements. Implemented a native GHG Calculation Engine (Activity Data × Emission Factor = CO₂e) directly into the `ESGRecord` and `ESGIndicator` models. Updated the `ESGCollectionWorkspace` to feature an intelligent GHG form for Scope 1/2/3 parameters. Enhanced the `validationEngine` with Year-on-Year (YoY) `VARIANCE_MAX` threshold checks. Seeded realistic BRSR Section C configurations (e.g., CEA India Grid Emission Factors) for seamless demonstration.
+
 
 ## Frontend Pages
 

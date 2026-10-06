@@ -30,4 +30,19 @@ const ReportSnapshotSchema: Schema = new Schema({
   integrityHash: { type: String }
 }, { timestamps: true });
 
+// Enforce Immutability: Prevent modification after initial creation
+ReportSnapshotSchema.pre('save', function() {
+  if (!this.isNew) {
+    throw new Error('ReportSnapshot is immutable and cannot be modified after creation.');
+  }
+});
+
+ReportSnapshotSchema.pre('updateOne', function() {
+  throw new Error('ReportSnapshot is immutable and cannot be updated.');
+});
+
+ReportSnapshotSchema.pre('findOneAndUpdate', function() {
+  throw new Error('ReportSnapshot is immutable and cannot be updated.');
+});
+
 export default mongoose.model<IReportSnapshot>('ReportSnapshot', ReportSnapshotSchema);

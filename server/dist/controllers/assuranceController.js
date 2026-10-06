@@ -23,7 +23,13 @@ const getSamples = async (req, res) => {
             query.recordId = { $in: authorizedRecords.map(r => r._id) };
         }
         const samples = await AssuranceSample_1.default.find(query)
-            .populate({ path: 'recordId', populate: { path: 'projectId indicatorId organizationId' } })
+            .populate({
+            path: 'recordId',
+            populate: [
+                { path: 'projectId indicatorId organizationId' },
+                { path: 'evidenceIds' }
+            ]
+        })
             .populate('selectedBy', 'name role')
             .sort({ createdAt: -1 });
         res.json(samples);

@@ -45,6 +45,17 @@ const ReviewWorkspace: React.FC = () => {
     }
   };
 
+  const getSlaBadge = (slaStatus?: string) => {
+    if (!slaStatus || slaStatus === 'ON_TIME') return null;
+    if (slaStatus === 'APPROACHING_SLA') {
+      return <span className="ml-2 px-2 py-1 rounded-full text-[9px] uppercase font-bold tracking-widest bg-yellow-100 text-yellow-700 border border-yellow-200">Approaching SLA</span>;
+    }
+    if (slaStatus === 'OVERDUE') {
+      return <span className="ml-2 px-2 py-1 rounded-full text-[9px] uppercase font-bold tracking-widest bg-red-100 text-red-700 border border-red-200 shadow-sm animate-pulse">Overdue</span>;
+    }
+    return null;
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-12 py-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -125,11 +136,15 @@ const ReviewWorkspace: React.FC = () => {
                         <div className="text-xs sm:text-sm text-brand-navy font-medium">{submitter?.name || 'Unknown User'}</div>
                         <div className="text-[10px] sm:text-[11px] text-brand-charcoal/40 font-medium flex items-center mt-1 uppercase tracking-wider">
                           <Clock className="h-3 w-3 mr-1 opacity-70" />
-                          {new Date(record.updatedAt).toLocaleDateString()}
+                          {(record as any).submittedAt ? new Date((record as any).submittedAt).toLocaleDateString() : new Date(record.updatedAt).toLocaleDateString()}
+                          {(record as any).ageHours > 0 ? ` (${Math.floor((record as any).ageHours)}h old)` : ''}
                         </div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 sm:py-6 whitespace-nowrap">
-                        {getStatusBadge(record.status)}
+                        <div className="flex items-center">
+                          {getStatusBadge(record.status)}
+                          {getSlaBadge((record as any).slaStatus)}
+                        </div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 sm:py-6 whitespace-nowrap text-right text-sm font-medium">
                         <button 

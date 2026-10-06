@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteUser = exports.updateUser = exports.createUser = exports.getUserById = exports.getUsers = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const User_1 = __importDefault(require("../models/User"));
+const Organization_1 = __importDefault(require("../models/Organization"));
 const errorHandler_1 = require("../middleware/errorHandler");
 const auditLogger_1 = require("../utils/auditLogger");
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -94,7 +95,7 @@ const createUser = async (req, res) => {
           }
         }
         */
-        // Auto-generate employeeId based on Role (e.g. MEIL-PO-0001)
+        // Auto-generate employeeId based on Role
         const rolePrefixes = {
             'PROJECT_OFFICER': 'PO',
             'BUSINESS_UNIT_REVIEWER': 'BU',
@@ -104,20 +105,74 @@ const createUser = async (req, res) => {
             'ADMIN': 'ADM'
         };
         const prefix = `MEIL-${rolePrefixes[role] || 'EMP'}`;
-        // Find highest employeeId with this prefix to auto-increment
-        const lastUser = await User_1.default.findOne({ employeeId: { $regex: `^${prefix}-\\d+$` } })
-            .sort({ employeeId: -1 })
-            .exec();
+        const existingUsers = await User_1.default.find({ employeeId: { $regex: `^${prefix}-\\d+$` } }, 'employeeId');
+        const existingNums = existingUsers
+            .map(u => {
+            const match = u.employeeId.match(new RegExp(`^${prefix}-(\\d+)$`));
+            return match ? parseInt(match[1], 10) : 0;
+        })
+            .filter(n => n > 0)
+            .sort((a, b) => a - b);
         let nextNum = 1;
-        if (lastUser && lastUser.employeeId) {
-            const match = lastUser.employeeId.match(new RegExp(`^${prefix}-(\\d+)$`));
-            if (match) {
-                nextNum = parseInt(match[1], 10) + 1;
+        for (const num of existingNums) {
+            if (num === nextNum) {
+                nextNum++;
+            }
+            else if (num > nextNum) {
+                break;
             }
         }
         const generatedEmployeeId = `${prefix}-${nextNum.toString().padStart(4, '0')}`;
         const salt = await bcryptjs_1.default.genSalt(10);
         const passwordHash = await bcryptjs_1.default.hash(password, salt);
+        // Dynamic Organization Auto-Creation Logic
+        let finalOrgId = undefined;
+        // Ensure Root Group exists
+        let meilGroup = await Organization_1.default.findOne({ type: 'GROUP' });
+        if (!meilGroup) {
+            meilGroup = await Organization_1.default.create({
+                name: 'MEIL Group',
+                type: 'GROUP',
+                code: 'MEIL-GRP',
+                location: 'HQ',
+                status: 'ACTIVE'
+            });
+        }
+        if (role === 'ADMIN' || role === 'AUDITOR' || role === 'GROUP_ESG_TEAM') {
+            finalOrgId = meilGroup._id;
+        }
+        else if (role === 'SUBSIDIARY_MANAGER') {
+            // Create a subsidiary for this manager
+            const newSub = await Organization_1.default.create({
+                name: `${name}'s Subsidiary`,
+                type: 'SUBSIDIARY',
+                parentId: meilGroup._id,
+                code: `SUB-${Date.now().toString().slice(-6)}`,
+                status: 'ACTIVE'
+            });
+            finalOrgId = newSub._id;
+        }
+        else if (role === 'BUSINESS_UNIT_REVIEWER') {
+            // organizationId from frontend is actually the Subsidiary Manager's user ID
+            const managerUser = await User_1.default.findById(organizationId);
+            if (!managerUser)
+                throw new errorHandler_1.AppError('Selected Subsidiary Manager not found', 404, 'NOT_FOUND');
+            const newBU = await Organization_1.default.create({
+                name: `${name}'s BU`,
+                type: 'BUSINESS_UNIT',
+                parentId: managerUser.organizationId,
+                code: `BU-${Date.now().toString().slice(-6)}`,
+                status: 'ACTIVE'
+            });
+            finalOrgId = newBU._id;
+        }
+        else if (role === 'PROJECT_OFFICER') {
+            // organizationId from frontend is actually the BU Reviewer's user ID
+            const managerUser = await User_1.default.findById(organizationId);
+            if (!managerUser)
+                throw new errorHandler_1.AppError('Selected BU Reviewer not found', 404, 'NOT_FOUND');
+            finalOrgId = managerUser.organizationId;
+        }
         const user = await User_1.default.create({
             name,
             email,
@@ -125,8 +180,8 @@ const createUser = async (req, res) => {
             mobileNo,
             passwordHash,
             role,
-            organizationId: organizationId || null,
-            isEmailVerified: true, // Since Admin provisions them, bypass OTP
+            organizationId: finalOrgId,
+            isEmailVerified: true,
             status: 'ACTIVE',
             mustChangePassword: true
         });
@@ -190,7 +245,36 @@ const updateUser = async (req, res) => {
             if (organizationId && !mongoose_1.default.Types.ObjectId.isValid(organizationId)) {
                 throw new errorHandler_1.AppError('Invalid organization ID format', 400, 'INVALID_ORG_ID');
             }
-            user.organizationId = organizationId;
+            // Map manager ID to proper organization ID
+            if (!organizationId) {
+                user.organizationId = null;
+            }
+            else if (role === 'PROJECT_OFFICER' || role === 'BUSINESS_UNIT_REVIEWER') {
+                const managerUser = await User_1.default.findById(organizationId);
+                if (managerUser) {
+                    if (role === 'PROJECT_OFFICER') {
+                        user.organizationId = managerUser.organizationId;
+                    }
+                    else if (role === 'BUSINESS_UNIT_REVIEWER') {
+                        // For updating a BU reviewer, we might ideally want to move their BU to a new subsidiary, 
+                        // but for simplicity, we just keep their current BU or create a new one under the new manager
+                        if (!user.organizationId) {
+                            const newBU = await Organization_1.default.create({
+                                name: `${user.name}'s BU`,
+                                type: 'BUSINESS_UNIT',
+                                parentId: managerUser.organizationId,
+                                code: `BU-${Date.now().toString().slice(-6)}`,
+                                status: 'ACTIVE'
+                            });
+                            user.organizationId = newBU._id;
+                        }
+                        else {
+                            // Update existing BU's parent
+                            await Organization_1.default.findByIdAndUpdate(user.organizationId, { parentId: managerUser.organizationId });
+                        }
+                    }
+                }
+            }
         }
         if (status) {
             const ALLOWED_STATUSES = ['ACTIVE', 'SUSPENDED', 'DISABLED'];
@@ -199,34 +283,6 @@ const updateUser = async (req, res) => {
             }
             user.status = status;
         }
-        // Enforce limits for Reviewers and Managers (REMOVED)
-        /*
-        if (user.organizationId && user.status !== 'DISABLED') {
-          if (user.role === 'BUSINESS_UNIT_REVIEWER') {
-            const existingReviewer = await User.findOne({
-              _id: { $ne: user._id },
-              organizationId: user.organizationId,
-              role: 'BUSINESS_UNIT_REVIEWER',
-              status: { $ne: 'DISABLED' }
-            });
-            if (existingReviewer) {
-              throw new AppError('This Business Unit already has an active Reviewer. Maximum 1 Reviewer allowed per BU.', 400, 'BU_REVIEWER_LIMIT_EXCEEDED');
-            }
-          }
-    
-          if (user.role === 'SUBSIDIARY_MANAGER') {
-            const existingManager = await User.findOne({
-              _id: { $ne: user._id },
-              organizationId: user.organizationId,
-              role: 'SUBSIDIARY_MANAGER',
-              status: { $ne: 'DISABLED' }
-            });
-            if (existingManager) {
-              throw new AppError('This Subsidiary already has an active Manager. Maximum 1 Manager allowed per Subsidiary.', 400, 'SUB_MANAGER_LIMIT_EXCEEDED');
-            }
-          }
-        }
-        */
         await user.save();
         await (0, auditLogger_1.logAudit)({
             userId: req.user._id,
@@ -264,16 +320,22 @@ const deleteUser = async (req, res) => {
             throw new errorHandler_1.AppError('User not found', 404, 'NOT_FOUND');
         }
         // Hard deletion is prohibited due to orphaned dependencies (Audit, ESG Records, Reviews)
-        // We soft-delete by changing status to DISABLED.
+        // We soft-delete by changing status to DISABLED and freeing up email and employeeId.
+        const oldEmployeeId = user.employeeId;
+        const oldEmail = user.email;
         user.status = 'DISABLED';
+        user.email = `${user.email}_deleted_${Date.now()}`;
+        if (user.employeeId) {
+            user.employeeId = `${user.employeeId}_deleted_${Date.now()}`;
+        }
         await user.save();
         await (0, auditLogger_1.logAudit)({
             userId: req.user._id,
             action: 'USER_DISABLED',
             entityType: 'User',
             entityId: user._id.toString(),
-            before: { status: 'ACTIVE' },
-            after: { status: 'DISABLED' }
+            before: { status: 'ACTIVE', email: oldEmail, employeeId: oldEmployeeId },
+            after: { status: 'DISABLED', email: user.email, employeeId: user.employeeId }
         });
         res.json({ success: true, message: 'User successfully disabled' });
     }

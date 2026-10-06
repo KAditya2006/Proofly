@@ -23,6 +23,24 @@ export interface ESGRecord {
   updatedBy?: any;
   createdAt: string;
   updatedAt: string;
+  
+  // GHG fields
+  activityData?: number;
+  activityUnit?: string;
+  emissionFactor?: number;
+  emissionFactorSource?: string;
+  emissionFactorYear?: string;
+  co2eResult?: number;
+
+  // Water fields
+  waterWithdrawal?: number;
+  waterDischarge?: number;
+  waterConsumption?: number;
+
+  // Waste fields
+  wasteCategory?: 'HAZARDOUS' | 'NON_HAZARDOUS';
+  wasteDisposalMethod?: 'RECYCLED' | 'REUSED' | 'RECOVERED' | 'DISPOSED' | 'LANDFILLED' | 'INCINERATED' | 'OTHER';
+  wasteQuantity?: number;
 }
 
 export interface ValidationResult {

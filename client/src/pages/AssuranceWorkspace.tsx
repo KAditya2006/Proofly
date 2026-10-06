@@ -4,11 +4,24 @@ import { getSamples, getFindings } from '../services/assuranceService';
 import type { AssuranceSample, AssuranceFinding } from '../services/assuranceService';
 import { Search, ShieldAlert, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 
+interface VerificationResult {
+  evidenceId: string;
+  name: string;
+  storedHash: string;
+  currentHash: string;
+  algorithm?: string;
+  status: 'VERIFIED' | 'MISMATCH' | 'VERIFICATION FAILED';
+  timestamp: string;
+  message?: string;
+}
+
 const AssuranceWorkspace: React.FC = () => {
   const { user } = useAuth();
   const [samples, setSamples] = useState<AssuranceSample[]>([]);
   const [findings, setFindings] = useState<AssuranceFinding[]>([]);
   const [loading, setLoading] = useState(true);
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -38,6 +51,27 @@ const AssuranceWorkspace: React.FC = () => {
       </div>
     );
   }
+
+  const handleVerifyEvidence = async (evidenceId: string) => {
+    try {
+      setIsVerifying(true);
+      setVerificationResult(null);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/evidence/${evidenceId}/verify`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      setVerificationResult(data);
+    } catch (error) {
+      console.error('Error verifying evidence:', error);
+      alert('Network error verifying evidence');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -110,12 +144,106 @@ const AssuranceWorkspace: React.FC = () => {
                         {sample.status}
                       </span>
                     </div>
+                    
+                    {/* Evidence Hash Display */}
+                    {sample.recordId?.evidenceIds && sample.recordId.evidenceIds.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-gray-100">
+                        <p className="text-xs font-semibold text-gray-700 mb-2">Attached Evidence & Integrity</p>
+                        <div className="space-y-2">
+                          {sample.recordId.evidenceIds.map((ev: any) => (
+                            <div key={ev._id} className="bg-gray-50 p-2 rounded border border-gray-100 flex items-start justify-between">
+                              <div>
+                                <p className="text-xs font-medium text-brand-navy">{ev.name}</p>
+                                <p className="text-[10px] text-gray-500 font-mono mt-0.5">ID: {ev._id}</p>
+                                <div className="mt-1.5 flex items-center gap-1.5">
+                                  <span className="px-1.5 py-0.5 bg-gray-200 text-gray-700 text-[9px] rounded font-bold">{ev.hashAlgorithm || 'NO HASH'}</span>
+                                  {ev.contentHash ? (
+                                    <span className="text-[10px] font-mono text-green-700 bg-green-50 px-1 py-0.5 rounded border border-green-100" title="Tamper-evident hash generated at upload">
+                                      {ev.contentHash.substring(0, 16)}...
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-gray-400 italic">Pre-hash architecture</span>
+                                  )}
+                                </div>
+                              </div>
+                              {ev.contentHash && (
+                                <button 
+                                  className="text-[10px] text-brand-navy hover:text-brand-coral underline font-medium px-2 py-1" 
+                                  onClick={() => handleVerifyEvidence(ev._id)}
+                                  disabled={isVerifying}
+                                >
+                                  {isVerifying ? 'Verifying...' : 'Verify Hash'}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
           </div>
         </div>
+
+        {/* Verification Modal / Alert */}
+        {verificationResult && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-lg w-full">
+              <h2 className="text-xl font-bold mb-4">Evidence Verification Result</h2>
+              
+              {verificationResult.status === 'VERIFICATION FAILED' ? (
+                <div className="text-red-600 mb-4 font-medium">{verificationResult.message}</div>
+              ) : (
+                <div className="space-y-3 mb-6 text-sm">
+                  <div className="grid grid-cols-3 gap-2 border-b pb-2">
+                    <span className="font-semibold text-gray-600">File Name:</span>
+                    <span className="col-span-2 break-all">{verificationResult.name}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 border-b pb-2">
+                    <span className="font-semibold text-gray-600">Evidence ID:</span>
+                    <span className="col-span-2 font-mono break-all">{verificationResult.evidenceId}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 border-b pb-2">
+                    <span className="font-semibold text-gray-600">Stored Hash ({verificationResult.algorithm || 'SHA-256'}):</span>
+                    <span className="col-span-2 font-mono text-xs break-all text-gray-500">{verificationResult.storedHash}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 border-b pb-2">
+                    <span className="font-semibold text-gray-600">Calculated Hash:</span>
+                    <span className={`col-span-2 font-mono text-xs break-all ${verificationResult.status === 'VERIFIED' ? 'text-green-600' : 'text-red-600'}`}>
+                      {verificationResult.currentHash}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 border-b pb-2">
+                    <span className="font-semibold text-gray-600">Timestamp:</span>
+                    <span className="col-span-2">{new Date(verificationResult.timestamp).toLocaleString()}</span>
+                  </div>
+                  <div className="mt-4 p-3 rounded-lg text-center font-bold text-lg border bg-gray-50">
+                    {verificationResult.status === 'VERIFIED' ? (
+                      <span className="text-green-600 flex items-center justify-center gap-2">
+                        <CheckCircle2 className="w-5 h-5" /> CRYPTOGRAPHICALLY VERIFIED
+                      </span>
+                    ) : (
+                      <span className="text-red-600 flex items-center justify-center gap-2">
+                        <AlertTriangle className="w-5 h-5" /> INTEGRITY MISMATCH DETECTED
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-end">
+                <button 
+                  onClick={() => setVerificationResult(null)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">

@@ -13,6 +13,7 @@ const db_1 = require("./config/db");
 const requestCorrelation_1 = require("./middleware/requestCorrelation");
 const logger_1 = require("./utils/logger");
 const errorHandler_1 = require("./middleware/errorHandler");
+const slaService_1 = require("./services/slaService");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT || 5000;
@@ -183,6 +184,11 @@ const startServer = async () => {
         await (0, db_1.connectDB)();
         server = app.listen(port, () => {
             console.log(`[server]: Server is running at http://localhost:${port} in ${process.env.NODE_ENV || 'development'} mode`);
+            // Start background SLA monitor (runs every 1 hour)
+            const SLA_INTERVAL = 60 * 60 * 1000;
+            setInterval(() => {
+                (0, slaService_1.checkSLAAndNotify)().catch(err => console.error('SLA Background Task Error:', err));
+            }, SLA_INTERVAL);
         });
     }
     catch (error) {

@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { uploadEvidence, deleteEvidence, getEvidence, getCoverage, getGaps } from '../controllers/evidenceController';
+import { uploadEvidence, deleteEvidence, getEvidence, getCoverage, getGaps, verifyEvidence } from '../controllers/evidenceController';
 import { protect, authorize } from '../middleware/authMiddleware';
 
 const router = express.Router();
@@ -20,7 +20,8 @@ const storage = multer.diskStorage({
   },
   filename(req: any, file: any, cb: any) {
     // Sanitize filename to prevent directory traversal and remove dangerous chars
-    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const originalName = file?.originalname || 'unknown_file';
+    const sanitizedName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     cb(null, `${Date.now()}-${sanitizedName}`);
   }
 });
@@ -31,7 +32,8 @@ const upload = multer({
   fileFilter: (req: any, file: any, cb: any) => {
     const allowedTypes = /pdf|csv|xlsx|xls|doc|docx|jpg|jpeg|png/;
     const dangerousTypes = /exe|sh|bat|cmd|js|ts|php|py/;
-    const ext = path.extname(file.originalname).toLowerCase();
+    const originalName = file?.originalname || 'unknown_file.txt';
+    const ext = path.extname(originalName).toLowerCase();
     
     if (dangerousTypes.test(ext)) {
       return cb(new Error('Executable files are strictly prohibited.'), false);
@@ -56,5 +58,8 @@ router.get('/gaps', getGaps);
 
 router.route('/:id')
   .delete(authorize('PROJECT_OFFICER'), deleteEvidence);
+
+router.route('/:id/verify')
+  .post(authorize('ADMIN', 'AUDITOR', 'GROUP_ESG_TEAM', 'BUSINESS_UNIT_REVIEWER'), verifyEvidence);
 
 export default router;

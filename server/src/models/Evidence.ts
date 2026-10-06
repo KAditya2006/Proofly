@@ -13,6 +13,8 @@ export interface IEvidence extends Document {
   uploadedAt: Date;
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
   remarks?: string;
+  hashAlgorithm?: string;
+  contentHash?: string;
 }
 
 const EvidenceSchema: Schema = new Schema({
@@ -31,7 +33,9 @@ const EvidenceSchema: Schema = new Schema({
     enum: ['PENDING', 'VERIFIED', 'REJECTED'],
     default: 'PENDING' 
   },
-  remarks: { type: String }
+  remarks: { type: String },
+  hashAlgorithm: { type: String },
+  contentHash: { type: String }
 }, { timestamps: true });
 
 export default mongoose.model<IEvidence>('Evidence', EvidenceSchema);

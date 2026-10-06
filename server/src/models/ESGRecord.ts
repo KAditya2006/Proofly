@@ -13,6 +13,21 @@ export interface IESGRecord extends Document {
   remarks?: string;
   evidenceIds: mongoose.Types.ObjectId[];
   comments?: string;
+  // GHG Calculation specific fields
+  activityData?: number;
+  activityUnit?: string;
+  emissionFactor?: number;
+  emissionFactorSource?: string;
+  emissionFactorYear?: string;
+  co2eResult?: number;
+  // Water Domain fields
+  waterWithdrawal?: number;
+  waterDischarge?: number;
+  waterConsumption?: number;
+  // Waste Domain fields
+  wasteCategory?: 'HAZARDOUS' | 'NON_HAZARDOUS';
+  wasteDisposalMethod?: 'RECYCLED' | 'REUSED' | 'RECOVERED' | 'DISPOSED' | 'LANDFILLED' | 'INCINERATED' | 'OTHER';
+  wasteQuantity?: number;
   // External Integration Provenance Fields
   sourceSystem?: string;
   sourceRecordId?: string;
@@ -22,9 +37,11 @@ export interface IESGRecord extends Document {
   status: 'DRAFT' | 'VALIDATION_FAILED' | 'SUBMITTED' | 'UNDER_REVIEW' | 'CORRECTION_REQUIRED' | 'APPROVED' | 'REJECTED';
   correctionReason?: string;
   submittedBy?: mongoose.Types.ObjectId;
+  submittedAt?: Date;
   approvedBy?: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
+  slaAlertSent?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +59,21 @@ const ESGRecordSchema: Schema = new Schema({
   remarks: { type: String },
   evidenceIds: [{ type: Schema.Types.ObjectId, ref: 'Evidence' }],
   comments: { type: String },
+  // GHG Calculation specific fields
+  activityData: { type: Number },
+  activityUnit: { type: String },
+  emissionFactor: { type: Number },
+  emissionFactorSource: { type: String },
+  emissionFactorYear: { type: String },
+  co2eResult: { type: Number },
+  // Water Domain fields
+  waterWithdrawal: { type: Number },
+  waterDischarge: { type: Number },
+  waterConsumption: { type: Number },
+  // Waste Domain fields
+  wasteCategory: { type: String, enum: ['HAZARDOUS', 'NON_HAZARDOUS'] },
+  wasteDisposalMethod: { type: String, enum: ['RECYCLED', 'REUSED', 'RECOVERED', 'DISPOSED', 'LANDFILLED', 'INCINERATED', 'OTHER'] },
+  wasteQuantity: { type: Number },
   // External Integration Provenance Fields
   sourceSystem: { type: String, trim: true },
   sourceRecordId: { type: String, trim: true },
@@ -56,9 +88,11 @@ const ESGRecordSchema: Schema = new Schema({
   },
   correctionReason: { type: String },
   submittedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  submittedAt: { type: Date },
   approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  slaAlertSent: { type: Boolean, default: false },
 }, { timestamps: true });
 
 // High-value production indexes

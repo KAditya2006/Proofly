@@ -52,3 +52,8 @@ export const getGaps = async (reportingPeriodId: string): Promise<any[]> => {
   const response = await api.get('/evidence/gaps', { params: { reportingPeriodId } });
   return response.data;
 };
+
+export const verifyEvidence = async (id: string) => {
+  const response = await api.post(`/evidence/${id}/verify`);
+  return response.data;
+};

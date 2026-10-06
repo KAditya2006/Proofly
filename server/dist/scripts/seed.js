@@ -113,6 +113,216 @@ const seedDB = async () => {
         }
         await Project_1.default.insertMany(projectsToInsert);
         console.log('Seed Data Inserted Successfully: 1 Subsidiary, 25 BUs, 25 Reviewers, 250 POs, 250 Projects!');
+        // 4. Reporting Period
+        const period = await ReportingPeriod_1.default.create({
+            name: 'FY 2023-24',
+            financialYear: '2023-2024',
+            startDate: new Date('2023-04-01'),
+            endDate: new Date('2024-03-31'),
+            status: 'OPEN'
+        });
+        // 5. ESG Indicators (BRSR Section C)
+        const indicatorsToInsert = [
+            {
+                code: 'E1.1',
+                name: 'Total Electricity Consumption (Grid) - Scope 2',
+                category: 'ENVIRONMENT',
+                subcategory: 'Energy',
+                unit: 'tCO2e',
+                dataType: 'NUMBER',
+                isGHG: true,
+                mandatory: true,
+                validationRules: [{ type: 'NUMERIC_MIN', value: 0 }],
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 6', questionNumber: '1', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'E1.2',
+                name: 'Scope 1 Emissions (Diesel Generators)',
+                category: 'ENVIRONMENT',
+                subcategory: 'GHG Emissions',
+                unit: 'tCO2e',
+                dataType: 'NUMBER',
+                isGHG: true,
+                mandatory: true,
+                validationRules: [{ type: 'NUMERIC_MIN', value: 0 }],
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 6', questionNumber: '2', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'S1.1',
+                name: 'Total Employees',
+                category: 'SOCIAL',
+                subcategory: 'Workforce',
+                unit: 'count',
+                dataType: 'NUMBER',
+                isGHG: false,
+                mandatory: true,
+                validationRules: [{ type: 'NUMERIC_MIN', value: 0 }],
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 3', questionNumber: '1', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'E2.1',
+                name: 'Total Water Consumption',
+                category: 'ENVIRONMENT',
+                subcategory: 'Water',
+                unit: 'Kilolitres',
+                dataType: 'NUMBER',
+                isWater: true,
+                mandatory: true,
+                validationRules: [{ type: 'NUMERIC_MIN', value: 0 }],
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 6', questionNumber: '3', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'E3.1',
+                name: 'Total Waste Generated',
+                category: 'ENVIRONMENT',
+                subcategory: 'Waste',
+                unit: 'Metric Tons',
+                dataType: 'NUMBER',
+                isWaste: true,
+                mandatory: true,
+                validationRules: [{ type: 'NUMERIC_MIN', value: 0 }],
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 6', questionNumber: '4', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'P1.1',
+                name: 'Anti-corruption Training Coverage',
+                category: 'GOVERNANCE',
+                subcategory: 'Ethics',
+                unit: '%',
+                dataType: 'NUMBER',
+                mandatory: true,
+                validationRules: [{ type: 'NUMERIC_MIN', value: 0 }, { type: 'NUMERIC_MAX', value: 100 }],
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 1', questionNumber: '1', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'P2.1',
+                name: 'R&D Investments in Sustainability',
+                category: 'ENVIRONMENT',
+                subcategory: 'Product Lifecycle',
+                unit: 'INR Lakhs',
+                dataType: 'NUMBER',
+                mandatory: true,
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 2', questionNumber: '1', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'P4.1',
+                name: 'Stakeholder Consultations Conducted',
+                category: 'SOCIAL',
+                subcategory: 'Stakeholders',
+                unit: 'Count',
+                dataType: 'NUMBER',
+                mandatory: true,
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 4', questionNumber: '1', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'P5.1',
+                name: 'Employees Paid Minimum Wage',
+                category: 'SOCIAL',
+                subcategory: 'Human Rights',
+                unit: '%',
+                dataType: 'NUMBER',
+                mandatory: true,
+                validationRules: [{ type: 'NUMERIC_MIN', value: 0 }, { type: 'NUMERIC_MAX', value: 100 }],
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 5', questionNumber: '1', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'P7.1',
+                name: 'Trade/Industry Affiliations',
+                category: 'GOVERNANCE',
+                subcategory: 'Public Policy',
+                unit: 'Count',
+                dataType: 'NUMBER',
+                mandatory: true,
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 7', questionNumber: '1', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'P8.1',
+                name: 'CSR Budget Spent',
+                category: 'SOCIAL',
+                subcategory: 'Inclusive Growth',
+                unit: '%',
+                dataType: 'NUMBER',
+                mandatory: true,
+                validationRules: [{ type: 'NUMERIC_MIN', value: 0 }],
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 8', questionNumber: '1', mappingType: 'DIRECT' }]
+            },
+            {
+                code: 'P9.1',
+                name: 'Customer Complaints Received',
+                category: 'SOCIAL',
+                subcategory: 'Consumer Value',
+                unit: 'Count',
+                dataType: 'NUMBER',
+                mandatory: true,
+                brsrMappings: [{ section: 'Section C', principle: 'Principle 9', questionNumber: '1', mappingType: 'DIRECT' }]
+            }
+        ];
+        const insertedIndicators = await ESGIndicator_1.default.insertMany(indicatorsToInsert);
+        console.log('Inserted Reporting Period and BRSR Indicators (with GHG logic).');
+        // Add Mock ESGRecords for Water and Waste
+        const waterInd = insertedIndicators.find(i => i.code === 'E2.1');
+        const wasteInd = insertedIndicators.find(i => i.code === 'E3.1');
+        const firstProject = await Project_1.default.findOne();
+        if (waterInd && wasteInd && firstProject) {
+            await ESGRecord_1.default.create([
+                {
+                    indicatorId: waterInd._id,
+                    projectId: firstProject._id,
+                    organizationId: group._id,
+                    reportingPeriodId: period._id,
+                    value: 8000,
+                    unit: 'Kilolitres',
+                    source: 'Water Meter Log',
+                    calculationMethod: 'Direct Reading',
+                    waterWithdrawal: 10000,
+                    waterDischarge: 2000,
+                    waterConsumption: 8000,
+                    status: 'APPROVED',
+                    createdBy: pos[0]._id,
+                    updatedBy: pos[0]._id
+                },
+                {
+                    indicatorId: wasteInd._id,
+                    projectId: firstProject._id,
+                    organizationId: group._id,
+                    reportingPeriodId: period._id,
+                    value: 120,
+                    unit: 'Metric Tons',
+                    source: 'Waste Manifests',
+                    wasteCategory: 'HAZARDOUS',
+                    wasteDisposalMethod: 'INCINERATED',
+                    wasteQuantity: 120,
+                    status: 'APPROVED',
+                    createdBy: pos[0]._id,
+                    updatedBy: pos[0]._id
+                }
+            ]);
+            console.log('Inserted Mock Water and Waste Records.');
+        }
+        // Create generic records for P1, P2, P3, P4, P5, P7, P8, P9
+        const additionalCodes = ['P1.1', 'P2.1', 'S1.1', 'P4.1', 'P5.1', 'P7.1', 'P8.1', 'P9.1', 'E1.1', 'E1.2'];
+        const genericRecords = [];
+        for (const code of additionalCodes) {
+            const ind = insertedIndicators.find(i => i.code === code);
+            if (ind && firstProject) {
+                genericRecords.push({
+                    indicatorId: ind._id,
+                    projectId: firstProject._id,
+                    organizationId: group._id,
+                    reportingPeriodId: period._id,
+                    value: code === 'S1.1' ? 1250 : (code.includes('E1') ? 500 : 95),
+                    unit: ind.unit,
+                    source: 'Internal Audits',
+                    status: 'APPROVED',
+                    createdBy: pos[0]._id,
+                    updatedBy: pos[0]._id
+                });
+            }
+        }
+        if (genericRecords.length > 0) {
+            await ESGRecord_1.default.insertMany(genericRecords);
+            console.log('Inserted Mock records across all P1-P9 Principles.');
+        }
         process.exit(0);
     }
     catch (error) {

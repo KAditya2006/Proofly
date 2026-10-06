@@ -1,13 +1,47 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGaps = exports.getCoverage = exports.getEvidence = exports.deleteEvidence = exports.uploadEvidence = void 0;
+exports.verifyEvidence = exports.getGaps = exports.getCoverage = exports.getEvidence = exports.deleteEvidence = exports.uploadEvidence = void 0;
 const Evidence_1 = __importDefault(require("../models/Evidence"));
 const ESGRecord_1 = __importDefault(require("../models/ESGRecord"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const crypto_1 = __importDefault(require("crypto"));
 const auditLogger_1 = require("../utils/auditLogger");
 const hierarchy_1 = require("../utils/hierarchy");
 // Note: File upload middleware (multer) should be applied in the route before this controller.
@@ -28,6 +62,11 @@ const uploadEvidence = async (req, res) => {
             return res.status(400).json({ message: 'Missing required context (Project, Reporting Period)' });
         }
         const fileUrl = `/uploads/${req.file.filename}`;
+        // Calculate SHA-256 Hash
+        const fileBuffer = fs_1.default.readFileSync(req.file.path);
+        const hashSum = crypto_1.default.createHash('sha256');
+        hashSum.update(fileBuffer);
+        const contentHash = hashSum.digest('hex');
         const newEvidence = new Evidence_1.default({
             name: req.file.originalname,
             fileUrl,
@@ -36,7 +75,9 @@ const uploadEvidence = async (req, res) => {
             projectId,
             reportingPeriodId,
             indicatorId,
-            uploadedBy: req.user._id
+            uploadedBy: req.user._id,
+            hashAlgorithm: 'SHA-256',
+            contentHash
         });
         const savedEvidence = await newEvidence.save();
         await (0, auditLogger_1.logAudit)({
@@ -208,3 +249,63 @@ const getGaps = async (req, res) => {
     }
 };
 exports.getGaps = getGaps;
+// @desc    Verify evidence integrity using SHA-256
+// @route   POST /api/evidence/:id/verify
+// @access  Private (Assurance/Admin)
+const verifyEvidence = async (req, res) => {
+    try {
+        const evidence = await Evidence_1.default.findById(req.params.id);
+        if (!evidence) {
+            return res.status(404).json({ message: 'Evidence not found' });
+        }
+        // RBAC: Check if user is authorized for the project this evidence belongs to
+        if (req.user.role !== 'ADMIN') {
+            const { getAuthorizedProjectIds } = await Promise.resolve().then(() => __importStar(require('../utils/hierarchy')));
+            const authorizedProjectIds = await getAuthorizedProjectIds(req.user.organizationId);
+            if (!authorizedProjectIds.some(id => id.toString() === evidence.projectId.toString())) {
+                return res.status(403).json({ message: 'Not authorized to verify evidence for this project' });
+            }
+        }
+        const filePath = path_1.default.join(__dirname, '../../', evidence.fileUrl);
+        if (!fs_1.default.existsSync(filePath)) {
+            return res.status(404).json({
+                message: 'Original file not found on disk. Cannot perform verification.',
+                status: 'VERIFICATION FAILED'
+            });
+        }
+        // Re-calculate hash
+        const fileBuffer = fs_1.default.readFileSync(filePath);
+        const hashSum = crypto_1.default.createHash('sha256');
+        hashSum.update(fileBuffer);
+        const currentHash = hashSum.digest('hex');
+        const isMatch = currentHash === evidence.contentHash;
+        const verificationStatus = isMatch ? 'VERIFIED' : 'MISMATCH';
+        // Log the verification attempt
+        await (0, auditLogger_1.logAudit)({
+            userId: req.user._id,
+            action: 'VERIFY_EVIDENCE',
+            entityType: 'Evidence',
+            entityId: evidence._id,
+            after: {
+                storedHash: evidence.contentHash,
+                currentHash,
+                status: verificationStatus
+            },
+            ipAddress: req.ip
+        });
+        res.json({
+            evidenceId: evidence._id,
+            name: evidence.name,
+            storedHash: evidence.contentHash,
+            currentHash,
+            algorithm: 'SHA-256',
+            status: verificationStatus,
+            timestamp: new Date()
+        });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error verifying evidence integrity' });
+    }
+};
+exports.verifyEvidence = verifyEvidence;

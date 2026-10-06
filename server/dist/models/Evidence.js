@@ -50,6 +50,8 @@ const EvidenceSchema = new mongoose_1.Schema({
         enum: ['PENDING', 'VERIFIED', 'REJECTED'],
         default: 'PENDING'
     },
-    remarks: { type: String }
+    remarks: { type: String },
+    hashAlgorithm: { type: String },
+    contentHash: { type: String }
 }, { timestamps: true });
 exports.default = mongoose_1.default.model('Evidence', EvidenceSchema);

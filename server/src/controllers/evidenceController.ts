@@ -3,6 +3,7 @@ import Evidence from '../models/Evidence';
 import ESGRecord from '../models/ESGRecord';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { logAudit } from '../utils/auditLogger';
 import { getAuthorizedProjectIds } from '../utils/hierarchy';
 
@@ -28,6 +29,12 @@ export const uploadEvidence = async (req: any, res: ExpressRes) => {
 
     const fileUrl = `/uploads/${req.file.filename}`;
     
+    // Calculate SHA-256 Hash
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const hashSum = crypto.createHash('sha256');
+    hashSum.update(fileBuffer);
+    const contentHash = hashSum.digest('hex');
+    
     const newEvidence = new Evidence({
       name: req.file.originalname,
       fileUrl,
@@ -36,7 +43,9 @@ export const uploadEvidence = async (req: any, res: ExpressRes) => {
       projectId,
       reportingPeriodId,
       indicatorId,
-      uploadedBy: req.user._id
+      uploadedBy: req.user._id,
+      hashAlgorithm: 'SHA-256',
+      contentHash
     });
 
     const savedEvidence = await newEvidence.save();
@@ -219,5 +228,71 @@ export const getGaps = async (req: any, res: ExpressRes) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error generating evidence gap report' });
+  }
+};
+
+// @desc    Verify evidence integrity using SHA-256
+// @route   POST /api/evidence/:id/verify
+// @access  Private (Assurance/Admin)
+export const verifyEvidence = async (req: any, res: ExpressRes) => {
+  try {
+    const evidence = await Evidence.findById(req.params.id);
+    if (!evidence) {
+      return res.status(404).json({ message: 'Evidence not found' });
+    }
+
+    // RBAC: Check if user is authorized for the project this evidence belongs to
+    if (req.user.role !== 'ADMIN') {
+      const { getAuthorizedProjectIds } = await import('../utils/hierarchy');
+      const authorizedProjectIds = await getAuthorizedProjectIds(req.user.organizationId);
+      if (!authorizedProjectIds.some(id => id.toString() === evidence.projectId.toString())) {
+        return res.status(403).json({ message: 'Not authorized to verify evidence for this project' });
+      }
+    }
+
+    const filePath = path.join(__dirname, '../../', evidence.fileUrl);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ 
+        message: 'Original file not found on disk. Cannot perform verification.',
+        status: 'VERIFICATION FAILED'
+      });
+    }
+
+    // Re-calculate hash
+    const fileBuffer = fs.readFileSync(filePath);
+    const hashSum = crypto.createHash('sha256');
+    hashSum.update(fileBuffer);
+    const currentHash = hashSum.digest('hex');
+
+    const isMatch = currentHash === evidence.contentHash;
+    const verificationStatus = isMatch ? 'VERIFIED' : 'MISMATCH';
+
+    // Log the verification attempt
+    await logAudit({
+      userId: req.user._id,
+      action: 'VERIFY_EVIDENCE',
+      entityType: 'Evidence',
+      entityId: evidence._id,
+      after: { 
+        storedHash: evidence.contentHash, 
+        currentHash, 
+        status: verificationStatus 
+      },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      evidenceId: evidence._id,
+      name: evidence.name,
+      storedHash: evidence.contentHash,
+      currentHash,
+      algorithm: 'SHA-256',
+      status: verificationStatus,
+      timestamp: new Date()
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error verifying evidence integrity' });
   }
 };
