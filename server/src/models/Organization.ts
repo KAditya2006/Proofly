@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IOrganization extends Document {
   name: string;
-  type: 'GROUP' | 'SUBSIDIARY' | 'BUSINESS_UNIT' | 'PROJECT';
+  type: 'GROUP' | 'SUBSIDIARY' | 'BUSINESS_UNIT';
   parentId?: mongoose.Types.ObjectId;
   code: string;
   location?: string;
@@ -15,7 +15,7 @@ const OrganizationSchema: Schema = new Schema({
   name: { type: String, required: true },
   type: { 
     type: String, 
-    enum: ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT', 'PROJECT'],
+    enum: ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT'],
     required: true 
   },
   parentId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },

@@ -156,28 +156,30 @@ const Dashboard: React.FC = () => {
           {myProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myProjects.map(project => (
-                <div key={project._id} className="bg-white rounded-2xl p-6 shadow-sm border border-brand-coral/10 hover:shadow-md transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="font-bold text-brand-navy text-lg">{project.name}</h4>
-                      <p className="text-xs font-mono text-gray-500 mt-1">{project.projectCode}</p>
+                <Link key={project._id} to={`/esg/collection?projectId=${project._id}`} className="block group">
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-brand-coral/10 group-hover:shadow-md group-hover:border-brand-coral/30 transition-all cursor-pointer h-full">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="font-bold text-brand-navy text-lg group-hover:text-brand-coral transition-colors">{project.name}</h4>
+                        <p className="text-xs font-mono text-gray-500 mt-1">{project.projectCode}</p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                        {project.status.replace('_', ' ')}
+                      </span>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">
-                      {project.status.replace('_', ' ')}
-                    </span>
+                    
+                    <div className="space-y-2 mt-4 text-sm text-gray-600 border-t border-gray-100 pt-4">
+                      <p className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Sector</span>
+                        <span className="font-medium text-brand-navy">{project.sector}</span>
+                      </p>
+                      <p className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Location</span>
+                        <span className="font-medium text-brand-navy">{project.location}</span>
+                      </p>
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2 mt-4 text-sm text-gray-600 border-t border-gray-100 pt-4">
-                    <p className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Sector</span>
-                      <span className="font-medium text-brand-navy">{project.sector}</span>
-                    </p>
-                    <p className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Location</span>
-                      <span className="font-medium text-brand-navy">{project.location}</span>
-                    </p>
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

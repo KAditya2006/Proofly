@@ -3,6 +3,7 @@ import { getProjects, type Project } from '../services/projectService';
 import { getReportingPeriods, type ReportingPeriod } from '../services/reportingService';
 import { getIndicators, type ESGIndicator } from '../services/indicatorService';
 import { FolderKanban, Calendar, Activity, UploadCloud, CheckCircle2, ChevronRight, Save, Loader2 } from 'lucide-react';
+import { PremiumSelect } from '../components/PremiumSelect';
 
 const ESGCollectionWorkspace: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -222,9 +223,9 @@ const ESGCollectionWorkspace: React.FC = () => {
   }, [activityData, emissionFactor, waterWithdrawal, waterDischarge, currentIndicator]);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 py-4">
+    <div className="max-w-4xl mx-auto space-y-12 py-4 px-4 sm:px-0">
       <div className="border-b border-brand-coral/20 pb-6 mb-8">
-        <h1 className="hollow-heading text-6xl text-left">ESG Collection</h1>
+        <h1 className="page-title">ESG Collection</h1>
         <p className="page-subtitle mt-4 text-lg">Record values and upload evidence for ESG parameters.</p>
       </div>
 
@@ -261,14 +262,15 @@ const ESGCollectionWorkspace: React.FC = () => {
                         <FolderKanban className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
                         <span className="ml-3 text-gray-300">|</span>
                       </div>
-                      <select 
-                        className="input-field pl-14 text-lg"
+                      <PremiumSelect 
                         value={selectedProject}
-                        onChange={e => setSelectedProject(e.target.value)}
-                      >
-                        <option value="">Select a project...</option>
-                        {projects.map(p => <option key={p._id} value={p._id}>{p.name} ({p.status === 'COMPLETED' ? 'Completed' : 'Ongoing'})</option>)}
-                      </select>
+                        onChange={val => setSelectedProject(val)}
+                        placeholder="Select a project..."
+                        options={projects.map(p => ({
+                          value: p._id,
+                          label: `${p.name} (${p.status === 'COMPLETED' ? 'Completed' : 'Ongoing'})`
+                        }))}
+                      />
                     </div>
                   </div>
                   
@@ -279,14 +281,15 @@ const ESGCollectionWorkspace: React.FC = () => {
                         <Calendar className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
                         <span className="ml-3 text-gray-300">|</span>
                       </div>
-                      <select 
-                        className="input-field pl-14 text-lg"
+                      <PremiumSelect 
                         value={selectedPeriod}
-                        onChange={e => setSelectedPeriod(e.target.value)}
-                      >
-                        <option value="">Select period...</option>
-                        {periods.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                      </select>
+                        onChange={val => setSelectedPeriod(val)}
+                        placeholder="Select period..."
+                        options={periods.map(p => ({
+                          value: p._id,
+                          label: p.name
+                        }))}
+                      />
                     </div>
                   </div>
 
@@ -326,27 +329,19 @@ const ESGCollectionWorkspace: React.FC = () => {
                     <Activity className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
                     <span className="ml-3 text-gray-300">|</span>
                   </div>
-                  <select 
-                    className="input-field pl-14 text-lg"
-                    value={selectedIndicator}
-                    onChange={e => {
-                      setSelectedIndicator(e.target.value);
-                      const ind = indicators.find(i => i._id === e.target.value);
-                      if (ind) setUnit(ind.unit);
-                    }}
-                  >
-                    <option value="">Search indicators...</option>
-                    <optgroup label="Environment">
-                      {indicators.filter(i => i.category === 'ENVIRONMENT').map(i => (
-                        <option key={i._id} value={i._id}>{i.code} - {i.name}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Social">
-                      {indicators.filter(i => i.category === 'SOCIAL').map(i => (
-                        <option key={i._id} value={i._id}>{i.code} - {i.name}</option>
-                      ))}
-                    </optgroup>
-                  </select>
+                  <PremiumSelect 
+                        value={selectedIndicator}
+                        onChange={val => {
+                          setSelectedIndicator(val);
+                          const ind = indicators.find(i => i._id === val);
+                          if (ind) setUnit(ind.unit);
+                        }}
+                        placeholder="Search indicators..."
+                        options={indicators.map(i => ({
+                          value: i._id,
+                          label: `${i.code} - ${i.name} (${i.category})`
+                        }))}
+                      />
                 </div>
               </div>
 
@@ -506,34 +501,34 @@ const ESGCollectionWorkspace: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label className="input-label">Waste Category</label>
-                      <select 
-                        className="input-field mt-2 text-lg border-emerald-200 focus:border-emerald-400" 
+                      <PremiumSelect 
                         value={wasteCategory}
-                        onChange={e => setWasteCategory(e.target.value)}
+                        onChange={val => setWasteCategory(val)}
+                        placeholder="Select Category..."
                         disabled={isReadOnly}
-                      >
-                        <option value="">Select Category...</option>
-                        <option value="HAZARDOUS">Hazardous</option>
-                        <option value="NON_HAZARDOUS">Non-Hazardous</option>
-                      </select>
+                        options={[
+                          { value: 'HAZARDOUS', label: 'Hazardous' },
+                          { value: 'NON_HAZARDOUS', label: 'Non-Hazardous' }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="input-label">Disposal Method</label>
-                      <select 
-                        className="input-field mt-2 text-lg border-emerald-200 focus:border-emerald-400" 
+                      <PremiumSelect 
                         value={wasteDisposalMethod}
-                        onChange={e => setWasteDisposalMethod(e.target.value)}
+                        onChange={val => setWasteDisposalMethod(val)}
+                        placeholder="Select Method..."
                         disabled={isReadOnly}
-                      >
-                        <option value="">Select Method...</option>
-                        <option value="RECYCLED">Recycled</option>
-                        <option value="REUSED">Reused</option>
-                        <option value="RECOVERED">Recovered</option>
-                        <option value="DISPOSED">Disposed</option>
-                        <option value="LANDFILLED">Landfilled</option>
-                        <option value="INCINERATED">Incinerated</option>
-                        <option value="OTHER">Other</option>
-                      </select>
+                        options={[
+                          { value: 'RECYCLED', label: 'Recycled' },
+                          { value: 'REUSED', label: 'Reused' },
+                          { value: 'RECOVERED', label: 'Recovered' },
+                          { value: 'DISPOSED', label: 'Disposed' },
+                          { value: 'LANDFILLED', label: 'Landfilled' },
+                          { value: 'INCINERATED', label: 'Incinerated' },
+                          { value: 'OTHER', label: 'Other' }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="input-label">Total Quantity</label>

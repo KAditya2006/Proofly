@@ -277,28 +277,11 @@ export const AdminControlCenter: React.FC = () => {
             <Link to="/admin/audit" className="text-sm text-brand-coral hover:text-brand-navy">View All</Link>
           </div>
           <div className="space-y-4">
-            <div className="flex p-3 rounded-lg bg-red-50 border border-red-100">
-              <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mr-3" />
+            <div className="flex p-8 rounded-lg bg-slate-50 border border-slate-100 items-center justify-center text-center">
               <div>
-                <p className="text-sm font-medium text-red-800">Multiple Failed Logins</p>
-                <p className="text-xs text-red-600 mt-1">5 failed attempts for EMP-0105 within 2 minutes. IP: 192.168.1.45</p>
-                <p className="text-xs text-red-400 mt-1">10 minutes ago</p>
-              </div>
-            </div>
-            <div className="flex p-3 rounded-lg bg-amber-50 border border-amber-100">
-              <ShieldCheck className="h-5 w-5 text-amber-500 flex-shrink-0 mr-3" />
-              <div>
-                <p className="text-sm font-medium text-amber-800">Unauthorized API Access Blocked</p>
-                <p className="text-xs text-amber-600 mt-1">User attempted to access /api/projects bypassing BU scope.</p>
-                <p className="text-xs text-amber-400 mt-1">1 hour ago</p>
-              </div>
-            </div>
-            <div className="flex p-3 rounded-lg bg-slate-50 border border-slate-200">
-              <Activity className="h-5 w-5 text-slate-500 flex-shrink-0 mr-3" />
-              <div>
-                <p className="text-sm font-medium text-slate-800">New Admin Provisioned</p>
-                <p className="text-xs text-slate-500 mt-1">EMP-ADMIN-006 created a new user with ADMIN role.</p>
-                <p className="text-xs text-slate-400 mt-1">3 hours ago</p>
+                <ShieldCheck className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm font-medium text-slate-600">No recent security alerts</p>
+                <p className="text-xs text-slate-400 mt-1">System is operating securely.</p>
               </div>
             </div>
           </div>

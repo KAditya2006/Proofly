@@ -60,11 +60,11 @@ const IndicatorExplorer: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="card p-4 flex flex-wrap gap-4 bg-gray-50">
-        <div>
+      <div className="card p-4 flex flex-col md:flex-row gap-4 bg-gray-50">
+        <div className="flex-1 w-full min-w-0">
           <label className="block text-xs font-medium text-gray-700 mb-1">ESG Indicator</label>
           <select 
-            className="input-field py-1.5"
+            className="input-field py-2 w-full truncate bg-white"
             value={selectedIndicator}
             onChange={(e) => setSelectedIndicator(e.target.value)}
           >
@@ -73,10 +73,10 @@ const IndicatorExplorer: React.FC = () => {
             ))}
           </select>
         </div>
-        <div>
+        <div className="md:w-64 w-full shrink-0">
           <label className="block text-xs font-medium text-gray-700 mb-1">Reporting Period (For Breakdown)</label>
           <select 
-            className="input-field py-1.5"
+            className="input-field py-2 w-full truncate bg-white"
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
           >

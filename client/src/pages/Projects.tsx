@@ -25,9 +25,9 @@ const ProjectsPage: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     projectCode: '',
-    subsidiaryManagerId: '',
-    buReviewerId: '',
-    assignedPOs: [] as string[],
+    subsidiaryId: '',
+    businessUnitId: '',
+    assignedPOId: '',
     location: '',
     sector: '',
     startDate: '',
@@ -80,39 +80,31 @@ const ProjectsPage: React.FC = () => {
     p.projectCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const eligiblePOs = availablePOs.filter(u => u.role === 'PROJECT_OFFICER');
-  const subsidiaryManagers = availablePOs.filter(u => u.role === 'SUBSIDIARY_MANAGER');
-  const buReviewers = availablePOs.filter(u => u.role === 'BUSINESS_UNIT_REVIEWER');
+  const subsidiaries = organizations.filter(o => o.type === 'SUBSIDIARY');
+  const businessUnits = organizations.filter(o => o.type === 'BUSINESS_UNIT' && o.parentId === formData.subsidiaryId);
+  const eligiblePOs = availablePOs.filter(u => u.role === 'PROJECT_OFFICER' && u.organizationId?._id === formData.businessUnitId);
 
-  const handleTogglePO = (poId: string) => {
-    setFormData(prev => {
-      const isSelected = prev.assignedPOs.includes(poId);
-      return {
-        ...prev,
-        assignedPOs: isSelected 
-          ? prev.assignedPOs.filter(id => id !== poId)
-          : [...prev.assignedPOs, poId]
-      };
-    });
-  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
       const groupOrg = organizations.find(o => o.type === 'GROUP');
-      const allOfficers = [...formData.assignedPOs, formData.subsidiaryManagerId, formData.buReviewerId].filter(Boolean);
+      const allOfficers = formData.assignedPOId ? [formData.assignedPOId] : [];
       
       await createProject({
         name: formData.name,
         projectCode: formData.projectCode,
         organizationId: groupOrg?._id || '', 
+        subsidiaryId: formData.subsidiaryId,
+        businessUnitId: formData.businessUnitId,
         location: formData.location,
         sector: formData.sector,
         assignedOfficers: allOfficers
       });
       setIsModalOpen(false);
-      setFormData({ name: '', projectCode: '', subsidiaryManagerId: '', buReviewerId: '', location: '', sector: '', startDate: '', assignedPOs: [] });
+      setFormData({ name: '', projectCode: '', subsidiaryId: '', businessUnitId: '', assignedPOId: '', location: '', sector: '', startDate: '' });
       await fetchData();
     } catch (error) {
       console.error('Error creating project:', error);
@@ -303,22 +295,22 @@ const ProjectsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Subsidiary Manager *</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Subsidiary *</label>
                     <PremiumSelect 
-                      options={subsidiaryManagers.map(user => ({ value: user._id, label: `${user.name} (${user.employeeId || 'Sys'})` }))}
-                      value={formData.subsidiaryManagerId}
-                      onChange={val => setFormData({...formData, subsidiaryManagerId: val})}
-                      placeholder="Select Subsidiary Manager..."
+                      options={subsidiaries.map(org => ({ value: org._id, label: org.name }))}
+                      value={formData.subsidiaryId}
+                      onChange={val => setFormData({...formData, subsidiaryId: val, businessUnitId: '', assignedPOId: ''})}
+                      placeholder="Select Subsidiary..."
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Business Unit Reviewer *</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Business Unit *</label>
                     <PremiumSelect 
-                      options={buReviewers.map(user => ({ value: user._id, label: `${user.name} (${user.employeeId || 'Sys'})` }))}
-                      value={formData.buReviewerId}
-                      onChange={val => setFormData({...formData, buReviewerId: val})}
-                      placeholder="Select BU Reviewer..."
+                      options={businessUnits.map(org => ({ value: org._id, label: org.name }))}
+                      value={formData.businessUnitId}
+                      onChange={val => setFormData({...formData, businessUnitId: val, assignedPOId: ''})}
+                      placeholder={formData.subsidiaryId ? "Select Business Unit..." : "Select Subsidiary first"}
                     />
                   </div>
 
@@ -351,31 +343,29 @@ const ProjectsPage: React.FC = () => {
 
                   <div className="col-span-1 md:col-span-2 pt-4">
                     <h4 className="text-lg font-serif font-semibold text-brand-navy border-b border-gray-100 pb-2 mb-4 flex items-center justify-between">
-                      <span>Assign Project Officers</span>
-                      <span className="text-xs font-sans font-medium text-brand-coral bg-brand-blush px-2 py-1 rounded-full">{formData.assignedPOs.length} Selected</span>
+                      <span>Assign Project Officer</span>
+                      <span className="text-xs font-sans font-medium text-brand-coral bg-brand-blush px-2 py-1 rounded-full">{formData.assignedPOId ? 1 : 0} Selected</span>
                     </h4>
                     
-                    {eligiblePOs.length > 0 ? (
+                    {!formData.businessUnitId ? (
+                        <div className="bg-gray-50 rounded-xl p-6 text-center border border-dashed border-gray-200">
+                          <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-gray-600">Select a Business Unit</p>
+                          <p className="text-xs text-gray-400 mt-1">Please select a Subsidiary and BU to see eligible officers.</p>
+                        </div>
+                    ) : eligiblePOs.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {eligiblePOs.map(po => {
-                          const isSelected = formData.assignedPOs.includes(po._id);
+                          const isSelected = formData.assignedPOId === po._id;
                             
-                            const isAvailable = true; // Simplified for assigning people directly
-                            
-                            let newPOsCount = formData.assignedPOs.length;
-                            const isBULimitReached = newPOsCount >= 10;
-                            const canSelect = isSelected || (!isBULimitReached);
-
                             return (
                               <div 
                                 key={po._id} 
-                                onClick={() => canSelect && handleTogglePO(po._id)}
-                                className={`p-4 rounded-xl border transition-all ${
+                                onClick={() => setFormData({...formData, assignedPOId: isSelected ? '' : po._id})}
+                                className={`p-4 rounded-xl border transition-all cursor-pointer ${
                                   isSelected 
-                                    ? 'bg-brand-blush/30 border-brand-coral shadow-sm cursor-pointer' 
-                                    : canSelect
-                                      ? 'bg-white border-gray-200 hover:border-gray-300 cursor-pointer'
-                                      : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
+                                    ? 'bg-brand-blush/30 border-brand-coral shadow-sm' 
+                                    : 'bg-white border-gray-200 hover:border-gray-300'
                                 } flex items-center justify-between`}
                               >
                                 <div className="flex items-center gap-3">
@@ -388,21 +378,19 @@ const ProjectsPage: React.FC = () => {
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  {isAvailable ? (
+                                  {isSelected ? (
                                     <>
                                       <div className="flex items-center gap-1.5 justify-end mb-1">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                        <span className="text-[10px] font-bold text-emerald-600 uppercase">Available</span>
+                                        <span className="h-1.5 w-1.5 rounded-full bg-brand-coral"></span>
+                                        <span className="text-[10px] font-bold text-brand-coral uppercase">Selected</span>
                                       </div>
-                                      <p className="text-[10px] text-gray-400">Capacity: 0/1</p>
                                     </>
                                   ) : (
                                     <>
                                       <div className="flex items-center gap-1.5 justify-end mb-1">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                                        <span className="text-[10px] font-bold text-amber-600 uppercase">Assigned</span>
+                                        <span className="h-1.5 w-1.5 rounded-full bg-slate-300"></span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Select</span>
                                       </div>
-                                      <p className="text-[10px] text-gray-400">Capacity: 1/1 (Full)</p>
                                     </>
                                   )}
                                 </div>
@@ -414,7 +402,7 @@ const ProjectsPage: React.FC = () => {
                         <div className="bg-gray-50 rounded-xl p-6 text-center border border-dashed border-gray-200">
                           <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                           <p className="text-sm font-medium text-gray-600">No Project Officers found</p>
-                          <p className="text-xs text-gray-400 mt-1">There are no POs registered in the system.</p>
+                          <p className="text-xs text-gray-400 mt-1">There are no POs registered in this Business Unit.</p>
                         </div>
                       )}
                   </div>
@@ -430,7 +418,7 @@ const ProjectsPage: React.FC = () => {
                   </button>
                   <button 
                     type="submit" 
-                    disabled={saving || !formData.subsidiaryManagerId || !formData.buReviewerId}
+                    disabled={saving || !formData.subsidiaryId || !formData.businessUnitId || !formData.assignedPOId}
                     className="px-8 py-3 rounded-full bg-brand-navy text-white text-sm font-serif tracking-widest uppercase font-semibold hover:bg-brand-coral hover:shadow-lg hover:-translate-y-0.5 transition-all focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   >
                     {saving ? 'Creating...' : 'Create Project'}

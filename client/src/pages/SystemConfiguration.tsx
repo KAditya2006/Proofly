@@ -51,7 +51,7 @@ export const SystemConfiguration: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 py-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">System Configuration</h1>
@@ -60,7 +60,7 @@ export const SystemConfiguration: React.FC = () => {
         <button 
           onClick={handleSave}
           disabled={saving}
-          className="btn-primary flex items-center"
+          className="btn-primary flex items-center justify-center w-full sm:w-auto"
         >
           <Save className="mr-2 h-4 w-4" />
           {saving ? 'Saving...' : 'Save Configuration'}
@@ -70,7 +70,7 @@ export const SystemConfiguration: React.FC = () => {
       <div className="bg-white shadow-sm ring-1 ring-slate-200 rounded-xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
         {/* Sidebar Tabs */}
         <div className="w-full md:w-64 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200">
-          <nav className="flex md:flex-col space-x-1 md:space-x-0 p-4 overflow-x-auto">
+          <nav className="flex md:flex-col gap-2 p-4 overflow-x-auto hide-scrollbar">
             <button
               onClick={() => setActiveTab('security')}
               className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap ${
@@ -84,7 +84,7 @@ export const SystemConfiguration: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('smtp')}
-              className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap mt-1 ${
+              className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap ${
                 activeTab === 'smtp' 
                   ? 'bg-white text-brand-navy shadow-sm ring-1 ring-slate-200' 
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -95,7 +95,7 @@ export const SystemConfiguration: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('system')}
-              className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap mt-1 ${
+              className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap ${
                 activeTab === 'system' 
                   ? 'bg-white text-brand-navy shadow-sm ring-1 ring-slate-200' 
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -106,7 +106,7 @@ export const SystemConfiguration: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('data')}
-              className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap mt-1 ${
+              className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap ${
                 activeTab === 'data' 
                   ? 'bg-white text-brand-navy shadow-sm ring-1 ring-slate-200' 
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'

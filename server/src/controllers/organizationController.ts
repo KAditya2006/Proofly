@@ -8,7 +8,7 @@ export const getOrganizations = async (req: any, res: ExpressRes) => {
   try {
     // For MVP, just return all organizations. 
     // They are public knowledge within the enterprise for mapping purposes.
-    const organizations = await Organization.find().sort({ createdAt: 1 });
+    const organizations = await Organization.find({ type: { $in: ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT'] } }).sort({ createdAt: 1 });
     res.json(organizations);
   } catch (error) {
     console.error(error);
@@ -43,7 +43,7 @@ export const createOrganization = async (req: any, res: ExpressRes) => {
       return res.status(400).json({ message: 'Name, type, and code are required', error: { code: 'BAD_REQUEST' } });
     }
 
-    const validTypes = ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT', 'PROJECT'];
+    const validTypes = ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ message: 'Invalid organization type', error: { code: 'INVALID_TYPE' } });
     }
@@ -68,9 +68,6 @@ export const createOrganization = async (req: any, res: ExpressRes) => {
       }
       if (type === 'BUSINESS_UNIT' && parentOrg.type !== 'SUBSIDIARY') {
         return res.status(400).json({ message: 'BUSINESS_UNIT must report to SUBSIDIARY', error: { code: 'INVALID_HIERARCHY' } });
-      }
-      if (type === 'PROJECT' && parentOrg.type !== 'BUSINESS_UNIT') {
-        return res.status(400).json({ message: 'PROJECT must report to BUSINESS_UNIT', error: { code: 'INVALID_HIERARCHY' } });
       }
     } else if (type !== 'GROUP') {
       return res.status(400).json({ message: 'Only GROUP can have no parent', error: { code: 'INVALID_HIERARCHY' } });

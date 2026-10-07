@@ -19,8 +19,8 @@ export const getProjects = async (req: any, res: ExpressRes) => {
     
     // RBAC logic for Project visibility
     if (role === 'PROJECT_OFFICER') {
-      // Officers only see projects assigned to them (check both ObjectId and string formats)
-      query.assignedOfficers = { $in: [_id, _id.toString()] };
+      // Officers only see projects assigned to them
+      query.assignedOfficers = { $in: [new mongoose.Types.ObjectId(_id), _id, _id.toString()] };
     } else if (role === 'BUSINESS_UNIT_REVIEWER') {
       // Reviewers see projects in their BU
       query.businessUnitId = organizationId;

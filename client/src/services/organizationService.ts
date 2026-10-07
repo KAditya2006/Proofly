@@ -3,7 +3,7 @@ import api from './api';
 export interface Organization {
   _id: string;
   name: string;
-  type: 'GROUP' | 'SUBSIDIARY' | 'BUSINESS_UNIT' | 'PROJECT';
+  type: 'GROUP' | 'SUBSIDIARY' | 'BUSINESS_UNIT';
   parentId?: string;
   code: string;
   location?: string;
@@ -22,5 +22,5 @@ export const getOrganizationById = async (id: string): Promise<Organization> => 
 
 export const createOrganization = async (data: Partial<Organization>): Promise<Organization> => {
   const response = await api.post('/organizations', data);
-  return response.data;
+  return response.data.data || response.data;
 };

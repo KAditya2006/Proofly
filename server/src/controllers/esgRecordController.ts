@@ -50,7 +50,7 @@ export const getRecords = async (req: AuthRequest, res: ExpressRes): Promise<voi
     let query: Record<string, unknown> = {};
 
     if (role === 'PROJECT_OFFICER') {
-      const assignedProjects = await Project.find({ assignedOfficers: _id }).select('_id');
+      const assignedProjects = await Project.find({ assignedOfficers: { $in: [new mongoose.Types.ObjectId(_id), _id, _id.toString()] } }).select('_id');
       query.projectId = { $in: assignedProjects.map(p => p._id) };
     } else if (role === 'BUSINESS_UNIT_REVIEWER') {
       const buProjects = await Project.find({ businessUnitId: organizationId }).select('_id');

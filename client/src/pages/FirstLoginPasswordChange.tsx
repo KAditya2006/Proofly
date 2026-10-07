@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { changePassword } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { getMe } from '../services/authService';
@@ -13,6 +13,9 @@ const FirstLoginPasswordChange: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
@@ -77,13 +80,20 @@ const FirstLoginPasswordChange: React.FC = () => {
               <Lock className="absolute left-0 text-gray-500" size={18} strokeWidth={1.5} />
               <span className="absolute left-6 text-gray-300">|</span>
               <input
-                type="password"
+                type={showCurrentPassword ? 'text' : 'password'}
                 required
-                className={`input-field pl-10 ${currentPassword ? 'border-brand-coral' : 'border-gray-300'}`}
+                className={`input-field pl-10 pr-10 ${currentPassword ? 'border-brand-coral' : 'border-gray-300'}`}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="••••••••"
               />
+              <button 
+                type="button" 
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-0 p-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showCurrentPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+              </button>
             </div>
           </div>
 
@@ -93,13 +103,20 @@ const FirstLoginPasswordChange: React.FC = () => {
               <Lock className="absolute left-0 text-gray-500" size={18} strokeWidth={1.5} />
               <span className="absolute left-6 text-gray-300">|</span>
               <input
-                type="password"
+                type={showNewPassword ? 'text' : 'password'}
                 required
-                className={`input-field pl-10 ${newPassword ? 'border-brand-coral' : 'border-gray-300'}`}
+                className={`input-field pl-10 pr-10 ${newPassword ? 'border-brand-coral' : 'border-gray-300'}`}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
               />
+              <button 
+                type="button" 
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-0 p-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showNewPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+              </button>
             </div>
           </div>
 
@@ -109,13 +126,20 @@ const FirstLoginPasswordChange: React.FC = () => {
               <Lock className="absolute left-0 text-gray-500" size={18} strokeWidth={1.5} />
               <span className="absolute left-6 text-gray-300">|</span>
               <input
-                type="password"
+                type={showConfirmPassword ? 'text' : 'password'}
                 required
-                className={`input-field pl-10 ${confirmPassword ? 'border-brand-coral' : 'border-gray-300'}`}
+                className={`input-field pl-10 pr-10 ${confirmPassword ? 'border-brand-coral' : 'border-gray-300'}`}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
               />
+              <button 
+                type="button" 
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-0 p-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showConfirmPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+              </button>
             </div>
           </div>
 

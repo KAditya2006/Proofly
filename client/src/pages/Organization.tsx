@@ -47,7 +47,16 @@ const OrganizationPage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (e.target.name === 'type') {
-      setFormData({ ...formData, type: e.target.value as any, parentId: '' });
+      const newType = e.target.value as any;
+      const availableParents = organizations.filter(org => {
+        if (newType === 'SUBSIDIARY') return org.type === 'GROUP';
+        if (newType === 'BUSINESS_UNIT') return org.type === 'SUBSIDIARY';
+        if (newType === 'PROJECT') return org.type === 'BUSINESS_UNIT';
+        return true;
+      });
+      const autoParentId = availableParents.length === 1 ? availableParents[0]._id : '';
+      
+      setFormData({ ...formData, type: newType, parentId: autoParentId });
     } else {
       setFormData({ ...formData, [e.target.name]: e.target.value });
     }
@@ -137,10 +146,11 @@ const OrganizationPage: React.FC = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-navy/20 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-shrink-0">
               <h2 className="text-xl font-serif font-semibold text-brand-navy">Add Organization Node</h2>
               <button 
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -148,7 +158,8 @@ const OrganizationPage: React.FC = () => {
               </button>
             </div>
             
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+            <form onSubmit={handleCreate} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 space-y-4 flex-1 overflow-y-auto">
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg flex items-center text-sm">
                   <AlertCircle className="h-4 w-4 mr-2" />
@@ -182,7 +193,6 @@ const OrganizationPage: React.FC = () => {
                     <option value="GROUP">GROUP</option>
                     <option value="SUBSIDIARY">SUBSIDIARY</option>
                     <option value="BUSINESS_UNIT">BUSINESS UNIT</option>
-                    <option value="PROJECT">PROJECT</option>
                   </select>
                 </div>
                 <div>
@@ -206,13 +216,8 @@ const OrganizationPage: React.FC = () => {
                     const availableParents = organizations.filter(org => {
                       if (formData.type === 'SUBSIDIARY') return org.type === 'GROUP';
                       if (formData.type === 'BUSINESS_UNIT') return org.type === 'SUBSIDIARY';
-                      if (formData.type === 'PROJECT') return org.type === 'BUSINESS_UNIT';
                       return true;
                     });
-
-                    const allSubsidiariesFull = formData.type === 'BUSINESS_UNIT' && 
-                      availableParents.length > 0 && 
-                      availableParents.every(org => organizations.filter(child => child.type === 'BUSINESS_UNIT' && child.parentId === org._id).length >= 5);
 
                     return (
                       <>
@@ -224,29 +229,16 @@ const OrganizationPage: React.FC = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-coral focus:border-transparent outline-none bg-white"
                         >
                           <option value="">Select Parent</option>
-                          {availableParents.map(org => {
-                            let isDisabled = false;
-                            let labelSuffix = '';
-                            if (formData.type === 'BUSINESS_UNIT') {
-                              const childBUCount = organizations.filter(child => child.type === 'BUSINESS_UNIT' && child.parentId === org._id).length;
-                              if (childBUCount >= 5) {
-                                isDisabled = true;
-                                labelSuffix = ' (Full - Max 5 BUs)';
-                              } else {
-                                labelSuffix = ` - ${childBUCount}/5 BUs space taken`;
-                              }
-                            }
-                            return (
-                              <option key={org._id} value={org._id} disabled={isDisabled}>
-                                {org.name} ({org.type.replace('_', ' ')}{labelSuffix})
-                              </option>
-                            );
-                          })}
+                          {availableParents.map(org => (
+                            <option key={org._id} value={org._id}>
+                              {org.name} ({org.type.replace('_', ' ')})
+                            </option>
+                          ))}
                         </select>
-                        {formData.type === 'BUSINESS_UNIT' && (availableParents.length === 0 || allSubsidiariesFull) && (
-                          <p className="mt-2 text-xs text-red-600 font-medium flex items-center">
+                        {formData.type === 'BUSINESS_UNIT' && availableParents.length === 0 && (
+                          <p className="mt-2 text-xs text-amber-600 font-medium flex items-center">
                             <AlertCircle className="w-3 h-3 mr-1" />
-                            No subsidiaries have space (Max 5 BUs per subsidiary). Create a new Subsidiary first.
+                            Please create a Subsidiary first before adding a Business Unit.
                           </p>
                         )}
                       </>
@@ -267,7 +259,8 @@ const OrganizationPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 mt-6">
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 flex-shrink-0 bg-white">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '../services/userService';
+import { getOrganizations, type Organization } from '../services/organizationService';
 import type { User } from '../services/userService';
 import { 
   Users, 
@@ -7,15 +8,20 @@ import {
   Search, 
   Shield, 
   X,
-  AlertCircle
+  AlertCircle,
+  Filter,
+  ChevronDown
 } from 'lucide-react';
 import { PremiumSelect } from '../components/PremiumSelect';
 import { PremiumLoader } from '../components/PremiumLoader';
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOption, setSortOption] = useState('newest');
+  const [filterRole, setFilterRole] = useState('ALL');
   
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -43,8 +49,12 @@ export const UserManagement: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const usersData = await userService.getUsers();
+      const [usersData, orgsData] = await Promise.all([
+        userService.getUsers(),
+        getOrganizations()
+      ]);
       setUsers(usersData);
+      setOrganizations(orgsData);
     } catch (err) {
       console.error('Failed to fetch data', err);
     } finally {
@@ -152,10 +162,24 @@ export const UserManagement: React.FC = () => {
   };
 
   const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (filterRole === 'ALL' || user.role === filterRole) &&
+    (user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     user.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  ).sort((a, b) => {
+    switch(sortOption) {
+      case 'name_asc':
+        return a.name.localeCompare(b.name);
+      case 'name_desc':
+        return b.name.localeCompare(a.name);
+      case 'role':
+        return a.role.localeCompare(b.role);
+      case 'newest':
+      default:
+        // Assuming newer users are at the end, or you can use _id timestamp
+        return a._id < b._id ? 1 : -1;
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -164,7 +188,7 @@ export const UserManagement: React.FC = () => {
           <h1 className="page-title">User Management</h1>
           <p className="page-subtitle mt-1">Manage employees, roles, and access controls</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto sm:flex-wrap">
           <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
@@ -174,6 +198,36 @@ export const UserManagement: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="pl-9 pr-8 py-2 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-coral/20 focus:border-brand-coral appearance-none bg-white text-slate-600 w-full sm:w-auto"
+            >
+              <option value="ALL">All Roles</option>
+              <option value="PROJECT_OFFICER">Project Officer (PO)</option>
+              <option value="BUSINESS_UNIT_REVIEWER">BU Reviewer</option>
+              <option value="SUBSIDIARY_MANAGER">Subsidiary Manager</option>
+              <option value="GROUP_ESG_TEAM">Group ESG Team</option>
+              <option value="AUDITOR">Auditor</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="pl-4 pr-8 py-2 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-coral/20 focus:border-brand-coral appearance-none bg-white text-slate-600 w-full sm:w-auto"
+            >
+              <option value="newest">Newest First</option>
+              <option value="name_asc">Name (A-Z)</option>
+              <option value="name_desc">Name (Z-A)</option>
+              <option value="role">By Role</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
           </div>
           <button 
             onClick={() => { resetForm(); setShowCreateModal(true); }}
@@ -341,6 +395,7 @@ export const UserManagement: React.FC = () => {
                         { value: 'PROJECT_OFFICER', label: 'Project Officer (PO)' },
                         { value: 'BUSINESS_UNIT_REVIEWER', label: 'Business Unit Reviewer (BU)' },
                         { value: 'SUBSIDIARY_MANAGER', label: 'Subsidiary Manager' },
+                        { value: 'GROUP_ESG_TEAM', label: 'Group ESG Team' },
                         { value: 'AUDITOR', label: 'Auditor (AU)' },
                         { value: 'ADMIN', label: 'System Administrator (Admin / MEIL)' }
                       ]}
@@ -348,31 +403,31 @@ export const UserManagement: React.FC = () => {
                       onChange={(val) => setFormData({...formData, role: val, organizationId: ''})}
                     />
                   </div>
-                  {(formData.role === 'PROJECT_OFFICER' || formData.role === 'BUSINESS_UNIT_REVIEWER') && (
+                  {['PROJECT_OFFICER', 'BUSINESS_UNIT_REVIEWER', 'SUBSIDIARY_MANAGER'].includes(formData.role) && (
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Assigned Manager</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Organization Context *</label>
                       <PremiumSelect
                         options={[
                           { 
                             value: '', 
-                            label: '--- Select Manager ---' 
+                            label: '--- Select Organization ---' 
                           },
-                          ...users
-                            .filter(u => {
-                              if (formData.role === 'PROJECT_OFFICER') {
-                                return u.role === 'BUSINESS_UNIT_REVIEWER' && u.status !== 'DISABLED';
+                          ...organizations
+                            .filter(org => {
+                              if (formData.role === 'PROJECT_OFFICER' || formData.role === 'BUSINESS_UNIT_REVIEWER') {
+                                return org.type === 'BUSINESS_UNIT';
                               }
-                              if (formData.role === 'BUSINESS_UNIT_REVIEWER') {
-                                return u.role === 'SUBSIDIARY_MANAGER' && u.status !== 'DISABLED';
+                              if (formData.role === 'SUBSIDIARY_MANAGER') {
+                                return org.type === 'SUBSIDIARY';
                               }
-                              return false;
+                              return true;
                             })
-                            .map(u => ({
-                              value: u._id,
-                              label: `${u.name} (${u.role.replace(/_/g, ' ')})`
+                            .map(org => ({
+                              value: org._id,
+                              label: `${org.name} (${org.code})`
                             }))
                         ]}
-                        value={formData.organizationId} // Reusing organizationId field for managerId
+                        value={formData.organizationId}
                         onChange={(val) => setFormData({...formData, organizationId: val})}
                       />
                     </div>

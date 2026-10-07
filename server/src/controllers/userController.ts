@@ -130,52 +130,30 @@ export const createUser = async (req: any, res: ExpressRes) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Dynamic Organization Auto-Creation Logic
-    let finalOrgId: any = undefined;
+    // Organization Context Logic
+    let finalOrgId: mongoose.Types.ObjectId | undefined;
     
-    // Ensure Root Group exists
-    let meilGroup = await Organization.findOne({ type: 'GROUP' });
-    if (!meilGroup) {
-      meilGroup = await Organization.create({
-        name: 'MEIL Group',
-        type: 'GROUP',
-        code: 'MEIL-GRP',
-        location: 'HQ',
-        status: 'ACTIVE'
-      });
-    }
-
     if (role === 'ADMIN' || role === 'AUDITOR' || role === 'GROUP_ESG_TEAM') {
+      let meilGroup = await Organization.findOne({ type: 'GROUP' });
+      if (!meilGroup) {
+        meilGroup = await Organization.create({
+          name: 'MEIL Group',
+          type: 'GROUP',
+          code: 'MEIL-GRP',
+          location: 'HQ',
+          status: 'ACTIVE'
+        });
+      }
       finalOrgId = meilGroup._id as mongoose.Types.ObjectId;
-    } else if (role === 'SUBSIDIARY_MANAGER') {
-      // Create a subsidiary for this manager
-      const newSub = await Organization.create({
-        name: `${name}'s Subsidiary`,
-        type: 'SUBSIDIARY',
-        parentId: meilGroup._id,
-        code: `SUB-${Date.now().toString().slice(-6)}`,
-        status: 'ACTIVE'
-      });
-      finalOrgId = newSub._id as mongoose.Types.ObjectId;
-    } else if (role === 'BUSINESS_UNIT_REVIEWER') {
-      // organizationId from frontend is actually the Subsidiary Manager's user ID
-      const managerUser = await User.findById(organizationId);
-      if (!managerUser) throw new AppError('Selected Subsidiary Manager not found', 404, 'NOT_FOUND');
-      
-      const newBU = await Organization.create({
-        name: `${name}'s BU`,
-        type: 'BUSINESS_UNIT',
-        parentId: managerUser.organizationId,
-        code: `BU-${Date.now().toString().slice(-6)}`,
-        status: 'ACTIVE'
-      });
-      finalOrgId = newBU._id as mongoose.Types.ObjectId;
-    } else if (role === 'PROJECT_OFFICER') {
-      // organizationId from frontend is actually the BU Reviewer's user ID
-      const managerUser = await User.findById(organizationId);
-      if (!managerUser) throw new AppError('Selected BU Reviewer not found', 404, 'NOT_FOUND');
-      
-      finalOrgId = managerUser.organizationId;
+    } else {
+      if (!organizationId) {
+        throw new AppError('Organization context is required for this role', 400, 'MISSING_ORG_ID');
+      }
+      const org = await Organization.findById(organizationId);
+      if (!org) {
+        throw new AppError('Selected Organization not found', 404, 'NOT_FOUND');
+      }
+      finalOrgId = org._id as mongoose.Types.ObjectId;
     }
 
     const user = await User.create({

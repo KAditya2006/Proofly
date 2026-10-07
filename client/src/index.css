@@ -26,7 +26,7 @@
 @layer components {
   /* Typography */
   .hollow-heading {
-    @apply font-serif text-transparent text-center font-bold tracking-[0.15em];
+    @apply font-serif text-transparent text-center font-bold tracking-[0.05em] sm:tracking-[0.15em];
     -webkit-text-stroke: 1.5px #000000;
     text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.1);
   }
@@ -66,7 +66,7 @@
     @apply bg-white rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] overflow-hidden border border-brand-coral/10;
   }
   .table-container {
-    @apply overflow-x-auto rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] bg-white border border-brand-coral/10;
+    @apply w-full max-w-full overflow-x-auto rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] bg-white border border-brand-coral/10;
   }
 
   /* Typography & Headers */
