@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { login } from '../services/authService';
 import { ProfilyLogo } from '../components/ProfilyLogo';
-import { Mail, Lock, Eye } from 'lucide-react';
-
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
@@ -81,7 +80,7 @@ const Login: React.FC = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-0 text-gray-500 hover:text-gray-800"
               >
-                <Eye size={18} strokeWidth={1.5} />
+                {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
               </button>
             </div>
           </div>
