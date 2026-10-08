@@ -48,7 +48,7 @@ const getRecords = async (req, res) => {
         const { role, _id, organizationId } = req.user;
         let query = {};
         if (role === 'PROJECT_OFFICER') {
-            const assignedProjects = await Project_1.default.find({ assignedOfficers: _id }).select('_id');
+            const assignedProjects = await Project_1.default.find({ assignedOfficers: { $in: [new mongoose_1.default.Types.ObjectId(_id), _id, _id.toString()] } }).select('_id');
             query.projectId = { $in: assignedProjects.map(p => p._id) };
         }
         else if (role === 'BUSINESS_UNIT_REVIEWER') {
@@ -75,6 +75,28 @@ const getRecords = async (req, res) => {
         if (req.query.reportingPeriodId) {
             query.reportingPeriodId = req.query.reportingPeriodId;
         }
+        if (req.query.status) {
+            const statuses = req.query.status.split(',');
+            if (query.status && typeof query.status === 'object' && '$in' in query.status) {
+                const allowed = query.status.$in;
+                const validStatuses = statuses.filter(s => allowed.includes(s));
+                if (validStatuses.length > 0) {
+                    query.status = { $in: validStatuses };
+                }
+                else {
+                    // If the requested statuses are not in the allowed list for this role, return nothing
+                    query.status = { $in: [] };
+                }
+            }
+            else {
+                if (statuses.length > 1) {
+                    query.status = { $in: statuses };
+                }
+                else {
+                    query.status = req.query.status;
+                }
+            }
+        }
         if (req.query.projectId) {
             // Ensure they don't bypass role-based projectId filter
             if (query.projectId && typeof query.projectId === 'object' && '$in' in query.projectId) {
@@ -90,6 +112,9 @@ const getRecords = async (req, res) => {
             else {
                 query.projectId = req.query.projectId;
             }
+        }
+        if (req.query.missingEvidence === 'true') {
+            query.evidenceIds = { $size: 0 };
         }
         // Pagination
         const page = parseInt(req.query.page) || 1;
@@ -132,6 +157,7 @@ const getRecordById = async (req, res) => {
             .populate('createdBy', 'name email')
             .populate('updatedBy', 'name email')
             .populate('submittedBy', 'name email')
+            .populate('buApprovedBy', 'name email')
             .populate('approvedBy', 'name email');
         if (!record) {
             throw new errorHandler_1.AppError('Record not found', 404, 'NOT_FOUND');

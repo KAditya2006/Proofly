@@ -10,7 +10,7 @@ const router = express_1.default.Router();
 router.use(authMiddleware_1.protect); // All routes require authentication
 router.route('/')
     .get(reportingPeriodController_1.getReportingPeriods)
-    .post((0, authMiddleware_1.authorize)('ADMIN'), reportingPeriodController_1.createReportingPeriod);
+    .post(reportingPeriodController_1.createReportingPeriod);
 router.route('/active').get(reportingPeriodController_1.getActiveReportingPeriods);
 router.route('/:id')
     .put((0, authMiddleware_1.authorize)('ADMIN'), reportingPeriodController_1.updateReportingPeriod);

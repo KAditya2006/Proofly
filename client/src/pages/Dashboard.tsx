@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
         const defaultInd = indRes.data.length > 0 ? indRes.data[0]._id : '';
         setSelectedIndicator(defaultInd);
 
-        const analyticsPromises = [
+        const analyticsPromises: Promise<any>[] = [
           getOverview(currentPeriod._id)
         ];
 

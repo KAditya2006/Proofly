@@ -12,7 +12,7 @@ const getOrganizations = async (req, res) => {
     try {
         // For MVP, just return all organizations. 
         // They are public knowledge within the enterprise for mapping purposes.
-        const organizations = await Organization_1.default.find().sort({ createdAt: 1 });
+        const organizations = await Organization_1.default.find({ type: { $in: ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT'] } }).sort({ createdAt: 1 });
         res.json(organizations);
     }
     catch (error) {
@@ -47,7 +47,7 @@ const createOrganization = async (req, res) => {
         if (!name || !type || !code) {
             return res.status(400).json({ message: 'Name, type, and code are required', error: { code: 'BAD_REQUEST' } });
         }
-        const validTypes = ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT', 'PROJECT'];
+        const validTypes = ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT'];
         if (!validTypes.includes(type)) {
             return res.status(400).json({ message: 'Invalid organization type', error: { code: 'INVALID_TYPE' } });
         }
@@ -69,9 +69,6 @@ const createOrganization = async (req, res) => {
             }
             if (type === 'BUSINESS_UNIT' && parentOrg.type !== 'SUBSIDIARY') {
                 return res.status(400).json({ message: 'BUSINESS_UNIT must report to SUBSIDIARY', error: { code: 'INVALID_HIERARCHY' } });
-            }
-            if (type === 'PROJECT' && parentOrg.type !== 'BUSINESS_UNIT') {
-                return res.status(400).json({ message: 'PROJECT must report to BUSINESS_UNIT', error: { code: 'INVALID_HIERARCHY' } });
             }
         }
         else if (type !== 'GROUP') {

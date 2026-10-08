@@ -38,7 +38,7 @@ const OrganizationSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     type: {
         type: String,
-        enum: ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT', 'PROJECT'],
+        enum: ['GROUP', 'SUBSIDIARY', 'BUSINESS_UNIT'],
         required: true
     },
     parentId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Organization', index: true },

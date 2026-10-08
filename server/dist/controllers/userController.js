@@ -125,53 +125,30 @@ const createUser = async (req, res) => {
         const generatedEmployeeId = `${prefix}-${nextNum.toString().padStart(4, '0')}`;
         const salt = await bcryptjs_1.default.genSalt(10);
         const passwordHash = await bcryptjs_1.default.hash(password, salt);
-        // Dynamic Organization Auto-Creation Logic
-        let finalOrgId = undefined;
-        // Ensure Root Group exists
-        let meilGroup = await Organization_1.default.findOne({ type: 'GROUP' });
-        if (!meilGroup) {
-            meilGroup = await Organization_1.default.create({
-                name: 'MEIL Group',
-                type: 'GROUP',
-                code: 'MEIL-GRP',
-                location: 'HQ',
-                status: 'ACTIVE'
-            });
-        }
+        // Organization Context Logic
+        let finalOrgId;
         if (role === 'ADMIN' || role === 'AUDITOR' || role === 'GROUP_ESG_TEAM') {
+            let meilGroup = await Organization_1.default.findOne({ type: 'GROUP' });
+            if (!meilGroup) {
+                meilGroup = await Organization_1.default.create({
+                    name: 'MEIL Group',
+                    type: 'GROUP',
+                    code: 'MEIL-GRP',
+                    location: 'HQ',
+                    status: 'ACTIVE'
+                });
+            }
             finalOrgId = meilGroup._id;
         }
-        else if (role === 'SUBSIDIARY_MANAGER') {
-            // Create a subsidiary for this manager
-            const newSub = await Organization_1.default.create({
-                name: `${name}'s Subsidiary`,
-                type: 'SUBSIDIARY',
-                parentId: meilGroup._id,
-                code: `SUB-${Date.now().toString().slice(-6)}`,
-                status: 'ACTIVE'
-            });
-            finalOrgId = newSub._id;
-        }
-        else if (role === 'BUSINESS_UNIT_REVIEWER') {
-            // organizationId from frontend is actually the Subsidiary Manager's user ID
-            const managerUser = await User_1.default.findById(organizationId);
-            if (!managerUser)
-                throw new errorHandler_1.AppError('Selected Subsidiary Manager not found', 404, 'NOT_FOUND');
-            const newBU = await Organization_1.default.create({
-                name: `${name}'s BU`,
-                type: 'BUSINESS_UNIT',
-                parentId: managerUser.organizationId,
-                code: `BU-${Date.now().toString().slice(-6)}`,
-                status: 'ACTIVE'
-            });
-            finalOrgId = newBU._id;
-        }
-        else if (role === 'PROJECT_OFFICER') {
-            // organizationId from frontend is actually the BU Reviewer's user ID
-            const managerUser = await User_1.default.findById(organizationId);
-            if (!managerUser)
-                throw new errorHandler_1.AppError('Selected BU Reviewer not found', 404, 'NOT_FOUND');
-            finalOrgId = managerUser.organizationId;
+        else {
+            if (!organizationId) {
+                throw new errorHandler_1.AppError('Organization context is required for this role', 400, 'MISSING_ORG_ID');
+            }
+            const org = await Organization_1.default.findById(organizationId);
+            if (!org) {
+                throw new errorHandler_1.AppError('Selected Organization not found', 404, 'NOT_FOUND');
+            }
+            finalOrgId = org._id;
         }
         const user = await User_1.default.create({
             name,

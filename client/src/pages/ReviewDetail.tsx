@@ -194,8 +194,9 @@ const ReviewDetail: React.FC = () => {
                       <p className="text-xs font-bold text-brand-navy">{(record.submittedBy as any)?.name || (record.createdBy as any)?.name || 'Unknown User'}</p>
                       <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">Project Officer (Submitting)</p>
                       <p className="text-[9px] font-mono text-gray-400 mt-1">Verified via MEIL SSO</p>
-                      {record.submittedAt && (
-                        <p className="text-[9px] font-mono text-blue-600 mt-1">{new Date(record.submittedAt).toLocaleString()}</p>
+                      {/* Verified By (BU Reviewer) */}
+                      {(record as any).submittedAt && (
+                        <p className="text-[9px] font-mono text-blue-600 mt-1">{new Date((record as any).submittedAt).toLocaleString()}</p>
                       )}
                     </div>
                   </div>
@@ -203,13 +204,13 @@ const ReviewDetail: React.FC = () => {
                   {/* Verified By (BU Reviewer) */}
                   <div>
                     <div className="h-16 flex items-end mb-2 relative">
-                      {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && record.buApprovedBy ? (
+                      {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && (record as any).buApprovedBy ? (
                         <>
                           <div className="absolute top-0 right-4 opacity-20">
                             <CheckCircle2 className="w-12 h-12 text-blue-600" />
                           </div>
                           <span className="font-[Shrikhand,cursive] text-2xl text-blue-700 italic signature-font relative z-10">
-                            {(record.buApprovedBy as any)?.name || 'BU Reviewer'}
+                            {((record as any).buApprovedBy as any)?.name || 'BU Reviewer'}
                           </span>
                         </>
                       ) : (
@@ -218,11 +219,11 @@ const ReviewDetail: React.FC = () => {
                     </div>
                     <div className="border-t border-brand-navy pt-2">
                       <p className="text-xs font-bold text-brand-navy">
-                        {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && record.buApprovedBy ? ((record.buApprovedBy as any)?.name || 'BU Reviewer') : 'Pending Reviewer'}
+                        {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && (record as any).buApprovedBy ? (((record as any).buApprovedBy as any)?.name || 'BU Reviewer') : 'Pending Reviewer'}
                       </p>
                       <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">BU Reviewer (Verifying)</p>
-                      {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && record.buApprovedAt && (
-                        <p className="text-[9px] font-mono text-blue-600 mt-1">{new Date(record.buApprovedAt).toLocaleString()}</p>
+                      {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && (record as any).buApprovedAt && (
+                        <p className="text-[9px] font-mono text-blue-600 mt-1">{new Date((record as any).buApprovedAt).toLocaleString()}</p>
                       )}
                     </div>
                   </div>
@@ -248,8 +249,8 @@ const ReviewDetail: React.FC = () => {
                         {record.status === 'APPROVED' ? ((record.approvedBy as any)?.name || 'Subsidiary Admin') : 'Pending Admin'}
                       </p>
                       <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">Subsidiary (Final Approval)</p>
-                      {record.status === 'APPROVED' && record.approvedAt && (
-                        <p className="text-[9px] font-mono text-emerald-600 mt-1">{new Date(record.approvedAt).toLocaleString()}</p>
+                      {record.status === 'APPROVED' && (record as any).approvedAt && (
+                        <p className="text-[9px] font-mono text-emerald-600 mt-1">{new Date((record as any).approvedAt).toLocaleString()}</p>
                       )}
                     </div>
                   </div>

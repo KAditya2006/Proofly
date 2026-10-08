@@ -82,6 +82,7 @@ const approveSubmission = async (req, res) => {
         }
         record.status = 'APPROVED';
         record.approvedBy = req.user._id;
+        record.approvedAt = new Date();
         record.updatedBy = req.user._id;
         await record.save();
         await (0, auditLogger_1.logAudit)({
@@ -215,6 +216,8 @@ const escalateSubmission = async (req, res) => {
             throw new errorHandler_1.AppError('Reporting period is closed or archived', 400, 'INVALID_PERIOD_STATE');
         }
         record.status = 'UNDER_REVIEW'; // Keep or set to UNDER_REVIEW to escalate
+        record.buApprovedBy = req.user._id;
+        record.buApprovedAt = new Date();
         record.updatedBy = req.user._id;
         await record.save();
         await (0, auditLogger_1.logAudit)({
