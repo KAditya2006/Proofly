@@ -39,6 +39,9 @@ export interface IESGRecord extends Document {
   submittedBy?: mongoose.Types.ObjectId;
   submittedAt?: Date;
   approvedBy?: mongoose.Types.ObjectId;
+  approvedAt?: Date;
+  buApprovedBy?: mongoose.Types.ObjectId;
+  buApprovedAt?: Date;
   createdBy: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
   slaAlertSent?: boolean;
@@ -90,6 +93,9 @@ const ESGRecordSchema: Schema = new Schema({
   submittedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   submittedAt: { type: Date },
   approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  approvedAt: { type: Date },
+  buApprovedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  buApprovedAt: { type: Date },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   slaAlertSent: { type: Boolean, default: false },

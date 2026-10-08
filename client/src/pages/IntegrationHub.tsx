@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
@@ -58,7 +59,7 @@ const IntegrationHub: React.FC = () => {
       fetchIntegrations();
     } catch (error) {
       console.error('Failed to create integration', error);
-      alert('Failed to create integration');
+      toast.error('Failed to create integration');
     } finally {
       setCreating(false);
     }

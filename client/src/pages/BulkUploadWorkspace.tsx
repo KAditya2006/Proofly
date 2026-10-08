@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { previewBulkUpload, confirmBulkUpload } from '../services/bulkUploadService';
 import { UploadCloud, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
@@ -30,7 +31,7 @@ const BulkUploadWorkspace: React.FC = () => {
       setPreview(data);
     } catch (error) {
       console.error('Failed to preview', error);
-      alert('Error previewing file. Please try again.');
+      toast.error('Error previewing file. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -45,7 +46,7 @@ const BulkUploadWorkspace: React.FC = () => {
       setFile(null);
     } catch (error) {
       console.error('Failed to confirm upload', error);
-      alert('Upload confirmation failed.');
+      toast.error('Upload confirmation failed.');
     } finally {
       setLoading(false);
     }

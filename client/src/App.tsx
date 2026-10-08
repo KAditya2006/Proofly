@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './layouts/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
+import { Toaster } from 'react-hot-toast';
 
 // Pages
 import PublicLayout from './layouts/PublicLayout';
@@ -22,6 +23,7 @@ import ProjectsPage from './pages/Projects';
 import ReportingSetupPage from './pages/ReportingSetup';
 import ESGHubPage from './pages/ESGHub';
 import ESGCollectionWorkspace from './pages/ESGCollectionWorkspace';
+import MyRecords from './pages/MyRecords';
 import ReviewWorkspace from './pages/ReviewWorkspace';
 import ReviewDetail from './pages/ReviewDetail';
 import BulkUpload from './pages/BulkUpload';
@@ -47,12 +49,12 @@ import IntegrationDetail from './pages/IntegrationDetail';
 import ImportBatches from './pages/ImportBatches';
 import ServiceAccounts from './pages/ServiceAccounts';
 import { UserManagement } from './pages/UserManagement';
-import { SystemConfiguration } from './pages/SystemConfiguration';
 
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
+      <Toaster position="top-right" />
       <BrowserRouter>
         <Routes>
           {/* Public Marketing Routes */}
@@ -109,7 +111,6 @@ const App: React.FC = () => {
               <Route path="admin/imports" element={<ImportBatches />} />
               <Route path="admin/api-keys" element={<ServiceAccounts />} />
               <Route path="admin/users" element={<UserManagement />} />
-              <Route path="admin/settings" element={<SystemConfiguration />} />
             </Route>
 
             {/* Phase 4 Workspaces */}
@@ -118,6 +119,7 @@ const App: React.FC = () => {
               <Route path="/reporting" element={<ReportingSetupPage />} />
               <Route path="/esg" element={<ESGHubPage />} />
               <Route path="/esg/collection" element={<ESGCollectionWorkspace />} />
+              <Route path="/esg/records" element={<MyRecords />} />
               <Route path="/esg/upload" element={<BulkUpload />} />
               <Route path="/reviews" element={<ReviewWorkspace />} />
               <Route path="/reviews/:id" element={<ReviewDetail />} />

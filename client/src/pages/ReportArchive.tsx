@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { Download, FileText, CheckCircle, Clock, Archive, Edit3, Lock, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -71,10 +72,10 @@ const ReportArchive: React.FC = () => {
         link.parentNode?.removeChild(link);
       } else if (action === 'evidence-pack') {
         await getEvidencePack(report._id);
-        alert('Evidence pack generation started.');
+        toast.success('Evidence pack generation started.');
       }
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Action failed');
+      toast.error(error.response?.data?.message || 'Action failed');
     }
   };
 

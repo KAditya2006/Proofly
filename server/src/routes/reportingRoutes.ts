@@ -14,7 +14,7 @@ router.use(protect); // All routes require authentication
 
 router.route('/')
   .get(getReportingPeriods)
-  .post(authorize('ADMIN'), createReportingPeriod);
+  .post(createReportingPeriod);
 
 router.route('/active').get(getActiveReportingPeriods);
 

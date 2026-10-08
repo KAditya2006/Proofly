@@ -75,6 +75,25 @@ export const getRecords = async (req: AuthRequest, res: ExpressRes): Promise<voi
     if (req.query.reportingPeriodId) {
       query.reportingPeriodId = req.query.reportingPeriodId;
     }
+    if (req.query.status) {
+      const statuses = (req.query.status as string).split(',');
+      if (query.status && typeof query.status === 'object' && '$in' in query.status) {
+        const allowed = (query.status as any).$in as string[];
+        const validStatuses = statuses.filter(s => allowed.includes(s));
+        if (validStatuses.length > 0) {
+          query.status = { $in: validStatuses };
+        } else {
+          // If the requested statuses are not in the allowed list for this role, return nothing
+          query.status = { $in: [] };
+        }
+      } else {
+        if (statuses.length > 1) {
+          query.status = { $in: statuses };
+        } else {
+          query.status = req.query.status;
+        }
+      }
+    }
     if (req.query.projectId) {
       // Ensure they don't bypass role-based projectId filter
       if (query.projectId && typeof query.projectId === 'object' && '$in' in query.projectId) {
@@ -88,6 +107,10 @@ export const getRecords = async (req: AuthRequest, res: ExpressRes): Promise<voi
       } else {
         query.projectId = req.query.projectId;
       }
+    }
+    
+    if (req.query.missingEvidence === 'true') {
+      query.evidenceIds = { $size: 0 };
     }
 
     // Pagination
@@ -132,6 +155,7 @@ export const getRecordById = async (req: AuthRequest, res: ExpressRes): Promise<
       .populate('createdBy', 'name email')
       .populate('updatedBy', 'name email')
       .populate('submittedBy', 'name email')
+      .populate('buApprovedBy', 'name email')
       .populate('approvedBy', 'name email');
 
     if (!record) {

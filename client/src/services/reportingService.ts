@@ -6,12 +6,16 @@ export interface ReportingPeriod {
   financialYear: string;
   startDate: string;
   endDate: string;
-  status: 'OPEN' | 'CLOSED';
+  status: 'PLANNING' | 'OPEN' | 'DATA_COLLECTION' | 'REVIEW' | 'ASSURANCE' | 'FINALIZATION' | 'CLOSED' | 'ARCHIVED';
   isCurrent: boolean;
 }
 
 export const getReportingPeriods = async (): Promise<ReportingPeriod[]> => {
   const response = await api.get('/reporting-periods');
+  return response.data;
+};
+export const createReportingPeriod = async (data: any) => {
+  const response = await api.post('/reporting-periods', data);
   return response.data;
 };
 export const updateReportingPeriod = async (id: string, data: any) => {

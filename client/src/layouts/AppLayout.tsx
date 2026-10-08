@@ -58,12 +58,14 @@ const AppLayout: React.FC = () => {
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'Reviews', href: '/reviews', icon: ClipboardCheck },
+        { name: 'All Data Records', href: '/esg/records', icon: FileText },
       ];
       break;
     case 'SUBSIDIARY_MANAGER':
       navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
+        { name: 'All Data Records', href: '/esg/records', icon: FileText },
         { name: 'Analytics', href: '/analytics', icon: BarChart3 },
         { name: 'Evidence', href: '/evidence-intel', icon: FileText },
       ];
@@ -102,7 +104,7 @@ const AppLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-proofly-gradient flex flex-col md:flex-row font-sans text-brand-charcoal">
+    <div className="h-[100dvh] w-full overflow-hidden bg-proofly-gradient flex flex-col md:flex-row font-sans text-brand-charcoal">
       {/* Mobile header */}
       <div className={`md:hidden flex items-center justify-between p-4 sticky top-0 z-30 transition-all duration-300 ${scrolled ? 'bg-[#f9b1b1]/95 backdrop-blur-md shadow-md border-b border-brand-coral/30' : 'bg-transparent'}`}>
         <div className="flex items-center space-x-2">
@@ -177,7 +179,7 @@ const AppLayout: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden focus:outline-none bg-transparent">
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden focus:outline-none bg-transparent">
         
         {/* Top Header */}
         <div className={`h-24 flex items-center justify-between px-4 sm:px-6 md:px-8 hidden md:flex z-10 sticky top-0 transition-all duration-300 ${scrolled ? 'bg-[#f9b1b1]/95 backdrop-blur-md shadow-md border-b border-brand-coral/30' : 'bg-transparent'}`}>

@@ -1,13 +1,16 @@
+import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getRecordById } from '../services/esgRecordService';
 import { approveSubmission, requestCorrection, rejectSubmission, escalateSubmission } from '../services/reviewService';
 import { type ESGRecord } from '../services/esgRecordService';
-import { FileText, CheckCircle2, XCircle, AlertCircle, ArrowLeft, Download, Send } from 'lucide-react';
+import { FileText, CheckCircle2, XCircle, AlertCircle, ArrowLeft, Download, Send, Eye } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const ReviewDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [record, setRecord] = useState<ESGRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [correctionReason, setCorrectionReason] = useState('');
@@ -31,7 +34,7 @@ const ReviewDetail: React.FC = () => {
       navigate('/reviews');
     } catch (error) {
       console.error('Approval failed:', error);
-      alert('Approval failed');
+      toast.error('Approval failed');
     } finally {
       setActionLoading(false);
     }
@@ -45,7 +48,7 @@ const ReviewDetail: React.FC = () => {
       navigate('/reviews');
     } catch (error) {
       console.error('Escalation failed:', error);
-      alert('Escalation failed');
+      toast.error('Escalation failed');
     } finally {
       setActionLoading(false);
     }
@@ -59,7 +62,7 @@ const ReviewDetail: React.FC = () => {
       navigate('/reviews');
     } catch (error) {
       console.error('Correction request failed:', error);
-      alert('Correction request failed');
+      toast.error('Correction request failed');
     } finally {
       setActionLoading(false);
     }
@@ -67,7 +70,7 @@ const ReviewDetail: React.FC = () => {
 
   const handleReject = async () => {
     if (!id || !correctionReason.trim()) {
-      alert("Please provide a reason for rejection.");
+      toast.error("Please provide a reason for rejection.");
       setShowCorrectionInput(true);
       return;
     }
@@ -77,7 +80,7 @@ const ReviewDetail: React.FC = () => {
       navigate('/reviews');
     } catch (error) {
       console.error('Rejection failed:', error);
-      alert('Rejection failed');
+      toast.error('Rejection failed');
     } finally {
       setActionLoading(false);
     }
@@ -94,9 +97,6 @@ const ReviewDetail: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/reviews')} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-serif font-semibold text-brand-navy">Review Submission</h1>
@@ -182,8 +182,8 @@ const ReviewDetail: React.FC = () => {
               {/* Signatures & Verification Section */}
               <div className="col-span-2 border-t-2 border-dashed border-gray-200 mt-4 pt-6">
                 <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">Chain of Custody / Verification</h3>
-                <div className="grid grid-cols-2 gap-8">
-                  {/* Submitted By */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Submitted By (Project Officer) */}
                   <div>
                     <div className="h-16 flex items-end mb-2">
                       <span className="font-[Shrikhand,cursive] text-2xl text-brand-navy/80 italic signature-font">
@@ -193,34 +193,67 @@ const ReviewDetail: React.FC = () => {
                     <div className="border-t border-brand-navy pt-2">
                       <p className="text-xs font-bold text-brand-navy">{(record.submittedBy as any)?.name || (record.createdBy as any)?.name || 'Unknown User'}</p>
                       <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">Project Officer (Submitting)</p>
-                      <p className="text-[9px] font-mono text-gray-400 mt-1">Verified via MEIL SSO (ID: {(record.submittedBy as any)?._id?.substring(0,8) || 'sys'})</p>
+                      <p className="text-[9px] font-mono text-gray-400 mt-1">Verified via MEIL SSO</p>
+                      {record.submittedAt && (
+                        <p className="text-[9px] font-mono text-blue-600 mt-1">{new Date(record.submittedAt).toLocaleString()}</p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Verified By */}
+                  {/* Verified By (BU Reviewer) */}
+                  <div>
+                    <div className="h-16 flex items-end mb-2 relative">
+                      {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && record.buApprovedBy ? (
+                        <>
+                          <div className="absolute top-0 right-4 opacity-20">
+                            <CheckCircle2 className="w-12 h-12 text-blue-600" />
+                          </div>
+                          <span className="font-[Shrikhand,cursive] text-2xl text-blue-700 italic signature-font relative z-10">
+                            {(record.buApprovedBy as any)?.name || 'BU Reviewer'}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">Pending BU Review...</span>
+                      )}
+                    </div>
+                    <div className="border-t border-brand-navy pt-2">
+                      <p className="text-xs font-bold text-brand-navy">
+                        {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && record.buApprovedBy ? ((record.buApprovedBy as any)?.name || 'BU Reviewer') : 'Pending Reviewer'}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">BU Reviewer (Verifying)</p>
+                      {['UNDER_REVIEW', 'APPROVED'].includes(record.status) && record.buApprovedAt && (
+                        <p className="text-[9px] font-mono text-blue-600 mt-1">{new Date(record.buApprovedAt).toLocaleString()}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Approved By (Subsidiary Admin) */}
                   <div>
                     <div className="h-16 flex items-end mb-2 relative">
                       {record.status === 'APPROVED' ? (
                         <>
-                          <div className="absolute top-0 right-10 opacity-20">
-                            <CheckCircle2 className="w-16 h-16 text-emerald-600" />
+                          <div className="absolute top-0 right-4 opacity-20">
+                            <CheckCircle2 className="w-12 h-12 text-emerald-600" />
                           </div>
                           <span className="font-[Shrikhand,cursive] text-2xl text-emerald-700 italic signature-font relative z-10">
-                            {(record.approvedBy as any)?.name || (record.updatedBy as any)?.name || 'Verifying Officer'}
+                            {(record.approvedBy as any)?.name || 'Subsidiary Admin'}
                           </span>
                         </>
                       ) : (
-                        <span className="text-sm text-gray-400 italic">Pending Verification...</span>
+                        <span className="text-sm text-gray-400 italic">Pending Final Approval...</span>
                       )}
                     </div>
                     <div className="border-t border-brand-navy pt-2">
-                      <p className="text-xs font-bold text-brand-navy">{(record.approvedBy as any)?.name || (record.updatedBy as any)?.name || 'Pending Reviewer'}</p>
-                      <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">BU Reviewer (Verifying)</p>
-                      {record.status === 'APPROVED' && (
-                        <p className="text-[9px] font-mono text-gray-400 mt-1">Cryptographically Sealed</p>
+                      <p className="text-xs font-bold text-brand-navy">
+                        {record.status === 'APPROVED' ? ((record.approvedBy as any)?.name || 'Subsidiary Admin') : 'Pending Admin'}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-0.5">Subsidiary (Final Approval)</p>
+                      {record.status === 'APPROVED' && record.approvedAt && (
+                        <p className="text-[9px] font-mono text-emerald-600 mt-1">{new Date(record.approvedAt).toLocaleString()}</p>
                       )}
                     </div>
                   </div>
+
                 </div>
               </div>
             </div>
@@ -263,7 +296,16 @@ const ReviewDetail: React.FC = () => {
             
             {!['APPROVED', 'REJECTED'].includes(record.status) ? (
               <div className="space-y-4">
-                {showCorrectionInput ? (
+                {(user?.role === 'ADMIN' || user?.role === 'PROJECT_OFFICER' || 
+                 (user?.role === 'BUSINESS_UNIT_REVIEWER' && record.status !== 'SUBMITTED')) ? (
+                  <div className="p-4 bg-gray-50 rounded-md border border-gray-100 text-center">
+                    <p className="text-sm font-medium text-gray-600">
+                      {user?.role === 'BUSINESS_UNIT_REVIEWER' && record.status === 'UNDER_REVIEW' 
+                        ? 'You have already verified this submission. Awaiting final approval from Subsidiary.'
+                        : 'You are in view-only mode. Only Reviewers and ESG Teams can take action on this submission.'}
+                    </p>
+                  </div>
+                ) : showCorrectionInput ? (
                   <div className="space-y-3">
                     <label className="block text-sm font-medium text-gray-700">Reason / Comment</label>
                     <textarea 
@@ -291,20 +333,25 @@ const ReviewDetail: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-2 flex flex-col">
-                    <button 
-                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2"
-                      onClick={handleApprove}
-                      disabled={actionLoading}
-                    >
-                      <CheckCircle2 className="h-4 w-4" /> Approve Submission
-                    </button>
-                    <button 
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2 mt-2"
-                      onClick={handleEscalate}
-                      disabled={actionLoading}
-                    >
-                      <Send className="h-4 w-4" /> Send to Higher Authority
-                    </button>
+                    {(user?.role === 'SUBSIDIARY_MANAGER' || user?.role === 'GROUP_ESG_TEAM') && (
+                      <button 
+                        className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2"
+                        onClick={handleApprove}
+                        disabled={actionLoading}
+                      >
+                        <CheckCircle2 className="h-4 w-4" /> Approve Submission
+                      </button>
+                    )}
+                    
+                    {user?.role === 'BUSINESS_UNIT_REVIEWER' && (
+                      <button 
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2"
+                        onClick={handleEscalate}
+                        disabled={actionLoading}
+                      >
+                        <Send className="h-4 w-4" /> Verify & Forward to Subsidiary
+                      </button>
+                    )}
                     <button 
                       className="bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2 mt-4"
                       onClick={() => setShowCorrectionInput(true)}

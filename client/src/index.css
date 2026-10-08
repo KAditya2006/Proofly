@@ -14,6 +14,9 @@
 }
 
 @layer base {
+  html, body {
+    @apply overflow-x-hidden;
+  }
   body {
     @apply bg-white text-brand-charcoal font-sans antialiased selection:bg-brand-coral selection:text-white;
   }
@@ -99,4 +102,18 @@
   .badge-neutral {
     @apply bg-gray-50 text-gray-600;
   }
+}
+@keyframes scroll-text {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-100% + 150px)); }
+}
+
+.hover-marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.hover-marquee-container:hover .hover-marquee-text {
+  display: inline-block;
+  animation: scroll-text 3s linear infinite alternate;
 }

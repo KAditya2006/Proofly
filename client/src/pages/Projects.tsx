@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { getProjects, createProject, type Project } from '../services/projectService';
 import { getOrganizations, type Organization } from '../services/organizationService';
@@ -108,7 +109,7 @@ const ProjectsPage: React.FC = () => {
       await fetchData();
     } catch (error) {
       console.error('Error creating project:', error);
-      alert('Failed to create project. Please check your inputs.');
+      toast.error('Failed to create project. Please check your inputs.');
     } finally {
       setSaving(false);
     }

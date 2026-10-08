@@ -87,6 +87,7 @@ export const approveSubmission = async (req: any, res: ExpressRes) => {
 
     record.status = 'APPROVED';
     record.approvedBy = req.user._id;
+    record.approvedAt = new Date();
     record.updatedBy = req.user._id;
     await record.save();
 
@@ -229,6 +230,8 @@ export const escalateSubmission = async (req: any, res: ExpressRes) => {
     }
 
     record.status = 'UNDER_REVIEW'; // Keep or set to UNDER_REVIEW to escalate
+    record.buApprovedBy = req.user._id;
+    record.buApprovedAt = new Date();
     record.updatedBy = req.user._id;
     await record.save();
 

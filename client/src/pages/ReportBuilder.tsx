@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { getReportingPeriods, type ReportingPeriod } from '../services/reportingService';
 import { getOrganizations, type Organization } from '../services/organizationService';
@@ -89,7 +90,7 @@ const ReportBuilder: React.FC = () => {
       navigate('/reports');
     } catch (error) {
       console.error('Error generating report:', error);
-      alert('Failed to generate report. Please try again.');
+      toast.error('Failed to generate report. Please try again.');
     } finally {
       setGenerating(false);
     }

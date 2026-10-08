@@ -19,7 +19,9 @@ const Dashboard: React.FC = () => {
   const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [indicators, setIndicators] = useState<any[]>([]);
+  const [periods, setPeriods] = useState<any[]>([]);
   const [selectedIndicator, setSelectedIndicator] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [myTasks, setMyTasks] = useState<any[]>([]);
   const [myProjects, setMyProjects] = useState<any[]>([]);
   const [poStats, setPoStats] = useState({ draft: 0, correction: 0, submitted: 0, approved: 0 });
@@ -28,56 +30,79 @@ const Dashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // MVP: Fetch the first open reporting period
-        const periodRes = await api.get('/reporting-periods');
-        const periods = periodRes.data;
-        const currentPeriod = periods.find((p: any) => p.isCurrent) || periods[0];
+        // Fetch PO specific data first since it doesn't need analytics
+        if (user?.role === 'PROJECT_OFFICER') {
+          const [recordsRes, projectsData] = await Promise.all([
+            api.get('/esg/records?limit=1000'),
+            import('../services/projectService').then(m => m.getProjects())
+          ]);
+          
+          const records = recordsRes.data.data || recordsRes.data;
+          
+          setPoStats({
+            draft: records.filter((r: any) => r.status === 'DRAFT').length,
+            correction: records.filter((r: any) => ['CORRECTION_REQUIRED', 'VALIDATION_FAILED', 'RETURNED'].includes(r.status)).length,
+            submitted: records.filter((r: any) => ['SUBMITTED', 'UNDER_REVIEW'].includes(r.status)).length,
+            approved: records.filter((r: any) => r.status === 'APPROVED').length,
+          });
+
+          setMyProjects(projectsData);
+          
+          // Fetch tasks for PO
+          const tasksData = await getTasks({ status: 'OPEN', assigneeId: user?._id });
+          setMyTasks(tasksData.slice(0, 5));
+          
+          setLoading(false);
+          return;
+        }
+
+        // For other roles, fetch analytics in parallel
+        const [periodRes, indRes] = await Promise.all([
+          api.get('/reporting-periods'),
+          api.get('/indicators')
+        ]);
+        
+        const periodsData = periodRes.data;
+        setPeriods(periodsData);
+        const currentPeriod = periodsData.find((p: any) => p.isCurrent) || periodsData[0];
         
         if (!currentPeriod) {
           setLoading(false);
           return;
         }
 
-        const indRes = await api.get('/indicators');
+        setSelectedPeriod(currentPeriod._id);
         setIndicators(indRes.data);
         
         const defaultInd = indRes.data.length > 0 ? indRes.data[0]._id : '';
         setSelectedIndicator(defaultInd);
 
-        const overviewData = await getOverview(currentPeriod._id);
+        const analyticsPromises = [
+          getOverview(currentPeriod._id)
+        ];
+
+        if (defaultInd) {
+          analyticsPromises.push(getTrends(defaultInd));
+          analyticsPromises.push(getAnomalies(defaultInd, currentPeriod._id));
+        }
+
+        if (user?.role !== 'AUDITOR') {
+          analyticsPromises.push(getTasks({ status: 'OPEN', assigneeId: user?._id }));
+        }
+
+        const [overviewData, ...restData] = await Promise.all(analyticsPromises);
         setOverview(overviewData);
 
         if (defaultInd) {
-          const trendData = await getTrends(defaultInd);
-          setTrends(trendData);
-
-          const anomalyData = await getAnomalies(defaultInd, currentPeriod._id);
-          setAnomalies(anomalyData);
+          setTrends(restData[0]);
+          setAnomalies(restData[1]);
+          if (user?.role !== 'AUDITOR') {
+            setMyTasks(restData[2].slice(0, 5));
+          }
+        } else if (user?.role !== 'AUDITOR') {
+          setMyTasks(restData[0].slice(0, 5));
         }
 
-        // Fetch user tasks if not Auditor
-        if (user?.role !== 'AUDITOR') {
-          const tasksData = await getTasks({ status: 'OPEN', assigneeId: user?._id });
-          setMyTasks(tasksData.slice(0, 5));
-        }
-
-        // Fetch PO specific data
-        if (user?.role === 'PROJECT_OFFICER') {
-          const recordsRes = await api.get('/esg/records?limit=1000');
-          const records = recordsRes.data.data || recordsRes.data;
-          
-          setPoStats({
-            draft: records.filter((r: any) => r.status === 'DRAFT').length,
-            correction: records.filter((r: any) => r.status === 'CORRECTION_REQUIRED').length,
-            submitted: records.filter((r: any) => r.status === 'SUBMITTED' || r.status === 'UNDER_REVIEW').length,
-            approved: records.filter((r: any) => r.status === 'APPROVED').length,
-          });
-
-          // Fetch My Projects
-          const { getProjects } = await import('../services/projectService');
-          const projectsData = await getProjects();
-          setMyProjects(projectsData);
-        }
       } catch (error) {
         console.error('Error fetching dashboard analytics:', error);
       } finally {
@@ -88,12 +113,33 @@ const Dashboard: React.FC = () => {
     fetchData();
   }, []);
 
-  // Fetch new trends if indicator changes
+  // Fetch new trends and anomalies if indicator changes
   useEffect(() => {
     if (selectedIndicator) {
       getTrends(selectedIndicator).then(setTrends).catch(console.error);
+      if (selectedPeriod) {
+        getAnomalies(selectedIndicator, selectedPeriod).then(setAnomalies).catch(console.error);
+      }
     }
   }, [selectedIndicator]);
+
+  // Fetch new overview and anomalies if period changes
+  const handlePeriodChange = async (newPeriodId: string) => {
+    setSelectedPeriod(newPeriodId);
+    try {
+      setLoading(true);
+      const overviewData = await getOverview(newPeriodId);
+      setOverview(overviewData);
+      if (selectedIndicator) {
+        const anomaliesData = await getAnomalies(selectedIndicator, newPeriodId);
+        setAnomalies(anomaliesData);
+      }
+    } catch (error) {
+      console.error('Error fetching period analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return <div className="p-8 text-center text-gray-500 font-serif">Loading Intelligence...</div>;
@@ -113,28 +159,28 @@ const Dashboard: React.FC = () => {
         <div className="bg-white/40 backdrop-blur-md rounded-4xl p-8 border border-white/60 shadow-sm">
           <h3 className="text-xs font-semibold text-brand-coral uppercase tracking-widest mb-8">Data Collection Status</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <Link to="/esg/collection?status=DRAFT" className="block group">
+            <Link to="/esg/records?status=DRAFT" className="block group">
               <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-3xl text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] h-full cursor-pointer">
                 <span className="text-5xl font-serif font-bold mb-3">{poStats.draft}</span>
                 <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-charcoal/70 mt-1">Pending (Drafts)</span>
               </div>
             </Link>
             
-            <Link to="/esg/collection?status=CORRECTION_REQUIRED" className="block group">
+            <Link to="/esg/records?status=CORRECTION_REQUIRED,VALIDATION_FAILED,RETURNED" className="block group">
               <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-3xl text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] border border-transparent group-hover:border-brand-coral/30 h-full cursor-pointer">
                 <span className="text-5xl font-serif font-bold mb-3 text-brand-coral">{poStats.correction}</span>
                 <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Needs Correction</span>
               </div>
             </Link>
 
-            <Link to="/esg/collection?status=SUBMITTED" className="block group">
+            <Link to="/esg/records?status=SUBMITTED,UNDER_REVIEW" className="block group">
               <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-3xl text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] h-full cursor-pointer">
                 <span className="text-5xl font-serif font-bold mb-3">{poStats.submitted}</span>
                 <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-charcoal/70 mt-1">Under Review</span>
               </div>
             </Link>
 
-            <Link to="/esg/collection?status=APPROVED" className="block group">
+            <Link to="/esg/records?status=APPROVED" className="block group">
               <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-3xl text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] h-full cursor-pointer">
                 <span className="text-5xl font-serif font-bold mb-3 text-emerald-600">{poStats.approved}</span>
                 <span className="text-[10px] uppercase tracking-widest font-semibold text-emerald-700 mt-1">Approved</span>
@@ -225,6 +271,18 @@ const Dashboard: React.FC = () => {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle mt-4 text-lg">Welcome back, <span className="font-semibold text-brand-navy">{user?.name}</span></p>
         </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-brand-charcoal/60 uppercase tracking-widest">Reporting Period</span>
+          <select 
+            value={selectedPeriod}
+            onChange={(e) => handlePeriodChange(e.target.value)}
+            className="bg-white/60 border border-brand-coral/30 rounded-xl px-4 py-2 text-sm font-medium text-brand-navy focus:ring-2 focus:ring-brand-coral/20 outline-none hover:bg-white transition-colors"
+          >
+            {periods.map(p => (
+              <option key={p._id} value={p._id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -238,10 +296,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="mt-8 pt-6 border-t border-brand-coral/20 flex items-center justify-between relative z-10">
-            <span className="text-sm font-medium text-brand-charcoal/70">Core: {overview?.readiness.brsrCore || 0}%</span>
-            <Link to="/brsr/core" className="text-xs font-bold tracking-wider text-brand-navy hover:text-brand-coral flex items-center transition-colors uppercase">
-              View <ArrowRight className="w-3 h-3 ml-1"/>
-            </Link>
+            <span className="text-sm font-medium text-brand-charcoal/70">Overall System Readiness</span>
           </div>
         </div>
 
@@ -249,22 +304,33 @@ const Dashboard: React.FC = () => {
         <div className="bg-white/40 backdrop-blur-md rounded-[2rem] p-8 lg:col-span-3 border border-white/60 shadow-sm">
           <h3 className="text-xs font-semibold text-brand-coral uppercase tracking-widest mb-8">Attention Required</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
-              <span className="text-5xl font-serif font-bold mb-3">{overview?.attentionRequired.incompleteDisclosures || 0}</span>
-              <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Incomplete</span>
-            </div>
-            <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
-              <span className="text-5xl font-serif font-bold mb-3">{overview?.attentionRequired.missingEvidence || 0}</span>
-              <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Missing Evidence</span>
-            </div>
-            <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
-              <span className="text-5xl font-serif font-bold mb-3">{overview?.attentionRequired.pendingApprovals || 0}</span>
-              <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Pending Approvals</span>
-            </div>
-            <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
-              <span className="text-5xl font-serif font-bold mb-3">{overview?.attentionRequired.validationErrors || 0}</span>
-              <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Validation Errors</span>
-            </div>
+            <Link to={`/esg/records?status=DRAFT${selectedPeriod ? `&periodId=${selectedPeriod}` : ''}`} className="block group">
+              <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] h-full cursor-pointer">
+                <span className="text-5xl font-serif font-bold mb-3 group-hover:text-brand-coral transition-colors">{overview?.attentionRequired.incompleteDisclosures || 0}</span>
+                <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Incomplete</span>
+              </div>
+            </Link>
+            
+            <Link to={`/esg/records?missingEvidence=true${selectedPeriod ? `&periodId=${selectedPeriod}` : ''}`} className="block group">
+              <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] h-full cursor-pointer">
+                <span className="text-5xl font-serif font-bold mb-3 group-hover:text-brand-coral transition-colors">{overview?.attentionRequired.missingEvidence || 0}</span>
+                <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Missing Evidence</span>
+              </div>
+            </Link>
+            
+            <Link to={`/esg/records?status=SUBMITTED${selectedPeriod ? `&periodId=${selectedPeriod}` : ''}`} className="block group">
+              <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] border border-transparent group-hover:border-brand-coral/30 h-full cursor-pointer">
+                <span className="text-5xl font-serif font-bold mb-3 text-brand-coral group-hover:scale-105 transition-transform">{overview?.attentionRequired.pendingApprovals || 0}</span>
+                <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Pending Approvals</span>
+              </div>
+            </Link>
+            
+            <Link to={`/esg/records?status=VALIDATION_FAILED${selectedPeriod ? `&periodId=${selectedPeriod}` : ''}`} className="block group">
+              <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] h-full cursor-pointer">
+                <span className="text-5xl font-serif font-bold mb-3 group-hover:text-brand-coral transition-colors">{overview?.attentionRequired.validationErrors || 0}</span>
+                <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Validation Errors</span>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

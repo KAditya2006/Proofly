@@ -24,9 +24,11 @@ export const PremiumSelect: React.FC<PremiumSelectProps> = ({
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find(opt => opt.value === value);
+  const displayText = selectedOption ? selectedOption.label : placeholder;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -44,14 +46,21 @@ export const PremiumSelect: React.FC<PremiumSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         className={`w-full flex items-center justify-between bg-white border ${
           isOpen ? 'border-brand-coral ring-2 ring-brand-coral/20' : 'border-gray-200'
         } text-brand-navy rounded-xl px-4 py-3 focus:outline-none transition-all ${
           disabled ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'hover:border-gray-300'
-        }`}
+        } overflow-hidden`}
       >
-        <span className={selectedOption ? 'text-brand-navy block truncate text-left' : 'text-gray-400 block truncate text-left'}>
-          {selectedOption ? selectedOption.label : placeholder}
+        <span className={selectedOption ? 'text-brand-navy block truncate text-left flex-1' : 'text-gray-400 block truncate text-left flex-1'}>
+          {isHovered && displayText && displayText.length > 20 ? (
+            // @ts-ignore
+            <marquee scrollamount="4">{displayText}</marquee>
+          ) : (
+            displayText
+          )}
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`} />
       </button>

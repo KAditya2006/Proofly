@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { Key, Plus, Trash2, Copy, AlertTriangle } from 'lucide-react';
@@ -51,7 +52,7 @@ const ServiceAccounts: React.FC = () => {
       fetchAccounts();
     } catch (error) {
       console.error('Failed to create account', error);
-      alert('Failed to create account');
+      toast.error('Failed to create account');
     }
   };
 
@@ -62,14 +63,14 @@ const ServiceAccounts: React.FC = () => {
       fetchAccounts();
     } catch (error) {
       console.error('Failed to revoke', error);
-      alert('Failed to revoke account');
+      toast.error('Failed to revoke account');
     }
   };
 
   const copyKey = () => {
     if (newKey) {
       navigator.clipboard.writeText(newKey);
-      alert('API Key copied to clipboard!');
+      toast.success('API Key copied to clipboard!');
     }
   };
 

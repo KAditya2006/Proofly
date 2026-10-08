@@ -112,12 +112,6 @@ export const AdminControlCenter: React.FC = () => {
           </div>
           <span className="text-sm font-medium text-slate-900">Indicators</span>
         </Link>
-        <Link to="/admin/settings" className="card p-4 flex flex-col items-center justify-center text-center hover:bg-slate-50 transition-colors cursor-pointer group">
-          <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors mb-3">
-            <Settings className="h-5 w-5 text-slate-600" />
-          </div>
-          <span className="text-sm font-medium text-slate-900">Settings</span>
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -181,10 +175,10 @@ export const AdminControlCenter: React.FC = () => {
               </div>
               <div className="border-t border-slate-100 pt-4">
                 <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="rounded-lg bg-slate-50 p-3">
+                  <Link to="/esg/records" className="rounded-lg bg-slate-50 p-3 hover:bg-slate-100 transition-colors block">
                     <dt className="truncate text-sm font-medium text-slate-500">Total Records</dt>
                     <dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{integrity.metrics?.totalRecords || 0}</dd>
-                  </div>
+                  </Link>
                   <div className="rounded-lg bg-slate-50 p-3">
                     <dt className="truncate text-sm font-medium text-slate-500 flex items-center">
                       Orphan Records

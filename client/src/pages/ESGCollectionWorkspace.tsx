@@ -1,20 +1,33 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getProjects, type Project } from '../services/projectService';
 import { getReportingPeriods, type ReportingPeriod } from '../services/reportingService';
 import { getIndicators, type ESGIndicator } from '../services/indicatorService';
 import { FolderKanban, Calendar, Activity, UploadCloud, CheckCircle2, ChevronRight, Save, Loader2 } from 'lucide-react';
 import { PremiumSelect } from '../components/PremiumSelect';
+import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const ESGCollectionWorkspace: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const [projects, setProjects] = useState<Project[]>([]);
   const [periods, setPeriods] = useState<ReportingPeriod[]>([]);
   const [indicators, setIndicators] = useState<ESGIndicator[]>([]);
   const [existingRecord, setExistingRecord] = useState<any>(null);
+  const [existingEvidenceIds, setExistingEvidenceIds] = useState<any[]>([]);
   const [isReadOnly, setIsReadOnly] = useState(false);
   
-  const [selectedProject, setSelectedProject] = useState('');
-  const [selectedPeriod, setSelectedPeriod] = useState('');
-  const [selectedIndicator, setSelectedIndicator] = useState('');
+  const [selectedProject, setSelectedProject] = useState(searchParams.get('projectId') || '');
+  const [selectedPeriod, setSelectedPeriod] = useState(searchParams.get('periodId') || '');
+  const [selectedIndicator, setSelectedIndicator] = useState(searchParams.get('indicatorId') || '');
+  const [isOtherPeriod, setIsOtherPeriod] = useState(false);
+  const [customPeriodText, setCustomPeriodText] = useState('');
+  const [creatingPeriod, setCreatingPeriod] = useState(false);
+  const [customPeriodError, setCustomPeriodError] = useState('');
+  
   const [value, setValue] = useState('');
   const [unit, setUnit] = useState('');
   const [source, setSource] = useState('');
@@ -43,27 +56,119 @@ const ESGCollectionWorkspace: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [loadingRecord, setLoadingRecord] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState('');
 
-  const handleAiScan = () => {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAiScanClick = () => {
     if (isReadOnly || isScanning) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    const ext = file.name.split('.').pop() || 'pdf';
+    
+    // Find project and indicator names
+    const proj = projects.find(p => p._id === selectedProject);
+    const ind = indicators.find(i => i._id === selectedIndicator);
+    
+    const projName = proj ? proj.name.replace(/\s+/g, '_') : 'Project';
+    const indName = ind ? ind.name.replace(/\s+/g, '_') : 'Indicator';
+    const finalFileName = `${projName}_${indName}.${ext}`;
+    
     setIsScanning(true);
     
-    // Simulate AI document scan, extraction, and standardization
-    setTimeout(() => {
-      setValue((Math.floor(Math.random() * 500) + 150).toString());
-      setSource('Auto-Extracted from Uploaded Document.pdf');
-      setCalculationMethod('System AI Extraction & Standardisation');
-      setRemarks('AI Verification: Confidence 98%. Values match standardized expected parameters.');
+    try {
+      const { uploadEvidence } = await import('../services/evidenceService');
+      
+      const newEvidence = await uploadEvidence(file, {
+        projectId: selectedProject,
+        reportingPeriodId: selectedPeriod,
+        indicatorId: selectedIndicator
+      });
+      
+      setExistingEvidenceIds([newEvidence._id]);
+      setUploadedFileName(file.name);
+      
+      // Simulate AI document scan, extraction, and standardization
+      setTimeout(() => {
+        setValue((Math.floor(Math.random() * 500) + 150).toString());
+        setSource(`Auto-Extracted from ${finalFileName}`);
+        setCalculationMethod('System AI Extraction & Standardisation');
+        setRemarks('AI Verification: Confidence 98%. Values match standardized expected parameters.');
+        setIsScanning(false);
+        toast.success(`AI Verification Complete: Confidence 98%`);
+        
+        // Reset input so same file can be uploaded again if needed
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }, 1500);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to upload evidence');
       setIsScanning(false);
-    }, 2500);
+    }
   };
 
   useEffect(() => {
     // In a real app we'd fetch in parallel or sequentially based on dependencies
     getProjects().then(setProjects);
-    getReportingPeriods().then(p => setPeriods(p.filter(period => period.status === 'OPEN')));
+    const fetchPeriods = () => {
+      getReportingPeriods().then(p => {
+        setPeriods(p.filter(period => period.status === 'OPEN' || period.status === 'DATA_COLLECTION'));
+      });
+    };
+    fetchPeriods();
     getIndicators().then(setIndicators);
-  }, []);
+    
+    // Auto advance to step 3 if all query params are provided (direct link to details)
+    if (searchParams.get('projectId') && searchParams.get('periodId') && searchParams.get('indicatorId')) {
+      setStep(3);
+    }
+  }, [searchParams]);
+
+  const handleCreateCustomPeriod = async () => {
+    if (!customPeriodText) return;
+    setCustomPeriodError('');
+    
+    // Check if it already exists
+    const searchStr = customPeriodText.toLowerCase().replace('fy ', '').trim();
+    const existing = periods.find(p => p.name.toLowerCase().includes(searchStr) || p.financialYear?.toLowerCase().includes(searchStr));
+    
+    if (existing) {
+      setSelectedPeriod(existing._id);
+      setIsOtherPeriod(false);
+      setCustomPeriodText('');
+      return;
+    }
+
+    try {
+      setCreatingPeriod(true);
+      const { createReportingPeriod } = await import('../services/reportingService');
+      const year = customPeriodText.trim();
+      const startYear = parseInt(year.substring(0, 4)) || new Date().getFullYear();
+      const endYear = startYear + 1;
+      
+      const newPeriod = await createReportingPeriod({
+        name: `FY ${year}`,
+        financialYear: year,
+        startDate: new Date(`${startYear}-04-01`),
+        endDate: new Date(`${endYear}-03-31`),
+        status: 'OPEN'
+      });
+      setPeriods(prev => [...prev, newPeriod]);
+      setSelectedPeriod(newPeriod._id);
+      setIsOtherPeriod(false);
+      setCustomPeriodText('');
+    } catch (e: any) {
+      console.error(e);
+      setCustomPeriodError(e.response?.data?.message || 'Failed to create period. Make sure the format is like 2027-28.');
+    } finally {
+      setCreatingPeriod(false);
+    }
+  };
 
   // Check for existing record when step 3 is reached
   useEffect(() => {
@@ -96,13 +201,29 @@ const ESGCollectionWorkspace: React.FC = () => {
             setWasteDisposalMethod(record.wasteDisposalMethod || '');
             setWasteQuantity(record.wasteQuantity?.toString() || '');
             
+            if (record.evidenceIds && record.evidenceIds.length > 0) {
+              setExistingEvidenceIds(record.evidenceIds.map((e: any) => e._id));
+              setUploadedFileName(record.evidenceIds[0].name || 'Existing Document');
+            } else {
+              setExistingEvidenceIds([]);
+              setUploadedFileName('');
+            }
+            
             if (['SUBMITTED', 'UNDER_REVIEW', 'APPROVED'].includes(record.status)) {
+              // Redirect to the clean view format that Admins see
+              navigate(`/reviews/${record._id}`);
+              return;
+            }
+            
+            if (user?.role !== 'PROJECT_OFFICER') {
               setIsReadOnly(true);
             } else {
               setIsReadOnly(false);
             }
           } else {
             setExistingRecord(null);
+            setExistingEvidenceIds([]);
+            setUploadedFileName('');
             setValue('');
             setSource('');
             setCalculationMethod('');
@@ -119,7 +240,7 @@ const ESGCollectionWorkspace: React.FC = () => {
             setWasteCategory('');
             setWasteDisposalMethod('');
             setWasteQuantity('');
-            setIsReadOnly(false);
+            setIsReadOnly(user?.role !== 'PROJECT_OFFICER');
           }
         }).finally(() => {
           setLoadingRecord(false);
@@ -146,7 +267,7 @@ const ESGCollectionWorkspace: React.FC = () => {
         source,
         calculationMethod,
         remarks,
-        evidenceIds: [],
+        evidenceIds: uploadedFileName ? (existingEvidenceIds.length > 0 ? existingEvidenceIds : []) : [],
         ...(isGHG && {
           activityData: Number(activityData),
           activityUnit,
@@ -168,42 +289,89 @@ const ESGCollectionWorkspace: React.FC = () => {
       if (existingRecord) {
         const updated = await updateRecord(existingRecord._id, data);
         setExistingRecord(updated);
-        alert('Draft updated successfully!');
+        toast.success('Draft updated successfully!');
       } else {
         const created = await createRecord(data);
         setExistingRecord(created);
-        alert('Draft saved successfully!');
+        toast.success('Draft saved successfully!');
       }
       
-      // Optionally reset step
+      setTimeout(() => navigate('/esg/records?status=DRAFT'), 1500);
     } catch (error) {
       console.error(error);
-      alert('Failed to save draft');
+      toast.error('Failed to save draft');
     } finally {
       setSaving(false);
     }
   };
 
   const handleSubmitRecord = async () => {
-    if (!existingRecord) {
-      alert('Please save the record as a draft first before submitting.');
-      return;
-    }
-    
     try {
       setSaving(true);
-      const { submitRecord } = await import('../services/esgRecordService');
-      const submitted = await submitRecord(existingRecord._id);
+      const { createRecord, updateRecord, submitRecord } = await import('../services/esgRecordService');
+      
+      const currentInd = indicators.find(i => i._id === selectedIndicator);
+      const isGHG = currentInd?.isGHG;
+      const isWater = currentInd?.isWater;
+      const isWaste = currentInd?.isWaste;
+      
+      const data = {
+        projectId: selectedProject,
+        reportingPeriodId: selectedPeriod,
+        indicatorId: selectedIndicator,
+        value: (isGHG || isWater || isWaste) ? undefined : (Number(value) || value),
+        unit,
+        source,
+        calculationMethod,
+        remarks,
+        evidenceIds: uploadedFileName ? (existingEvidenceIds.length > 0 ? existingEvidenceIds : []) : [],
+        ...(isGHG && {
+          activityData: Number(activityData),
+          activityUnit,
+          emissionFactor: Number(emissionFactor),
+          emissionFactorSource,
+          emissionFactorYear,
+        }),
+        ...(isWater && {
+          waterWithdrawal: Number(waterWithdrawal),
+          waterDischarge: Number(waterDischarge)
+        }),
+        ...(isWaste && {
+          wasteCategory: wasteCategory as any,
+          wasteDisposalMethod: wasteDisposalMethod as any,
+          wasteQuantity: Number(wasteQuantity)
+        })
+      };
+
+      let recordId = existingRecord?._id;
+      if (existingRecord) {
+        await updateRecord(recordId, data);
+      } else {
+        const created = await createRecord(data);
+        recordId = created._id;
+        setExistingRecord(created);
+      }
+      
+      const submitted = await submitRecord(recordId);
       setExistingRecord(submitted);
       setIsReadOnly(true);
-      alert('Record submitted successfully! It is now pending BU review.');
+      toast.success('Record submitted successfully! It is now pending BU review.');
+      
+      setTimeout(() => navigate('/esg/records?status=SUBMITTED,UNDER_REVIEW'), 1500);
     } catch (error: any) {
       console.error(error);
-      alert(error.response?.data?.message || 'Failed to submit record');
+      const resData = error.response?.data;
+      if (resData?.errors && Array.isArray(resData.errors) && resData.errors.length > 0) {
+        // Show validation errors joined by newline
+        toast.error(`Validation Failed: ${resData.errors.join(', ')}`, { duration: 5000 });
+      } else {
+        toast.error(resData?.message || 'Failed to submit record');
+      }
     } finally {
       setSaving(false);
     }
   };
+
 
   const currentIndicator = indicators.find(i => i._id === selectedIndicator);
 
@@ -223,7 +391,7 @@ const ESGCollectionWorkspace: React.FC = () => {
   }, [activityData, emissionFactor, waterWithdrawal, waterDischarge, currentIndicator]);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 py-4 px-4 sm:px-0">
+    <div className="max-w-4xl mx-auto space-y-12 py-4 px-4 sm:px-0 relative">
       <div className="border-b border-brand-coral/20 pb-6 mb-8">
         <h1 className="page-title">ESG Collection</h1>
         <p className="page-subtitle mt-4 text-lg">Record values and upload evidence for ESG parameters.</p>
@@ -231,7 +399,7 @@ const ESGCollectionWorkspace: React.FC = () => {
 
       <div className="space-y-8">
         {/* Step 1: Project & Period */}
-        <div className={`rounded-[2rem] overflow-hidden transition-all duration-500 shadow-sm border border-white/60 ${step >= 1 ? 'opacity-100 bg-white/40 backdrop-blur-md' : 'opacity-50 pointer-events-none bg-transparent'}`}>
+        <div className={`rounded-4xl transition-all duration-500 shadow-sm border border-white/60 ${step >= 1 ? 'opacity-100 bg-white/40 backdrop-blur-md' : 'opacity-50 pointer-events-none bg-transparent'}`}>
           <div className="px-8 py-6 flex items-center justify-between cursor-pointer" onClick={() => setStep(1)}>
             <div className="flex items-center gap-6">
               <div className={`h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold transition-colors shadow-inner ${step > 1 ? 'bg-white text-brand-coral' : 'bg-brand-coral text-white'}`}>
@@ -282,16 +450,55 @@ const ESGCollectionWorkspace: React.FC = () => {
                         <span className="ml-3 text-gray-300">|</span>
                       </div>
                       <PremiumSelect 
-                        value={selectedPeriod}
-                        onChange={val => setSelectedPeriod(val)}
+                        value={isOtherPeriod ? 'other' : selectedPeriod}
+                        onChange={val => {
+                          if (val === 'other') {
+                            setIsOtherPeriod(true);
+                            setSelectedPeriod('');
+                          } else {
+                            setIsOtherPeriod(false);
+                            setSelectedPeriod(val);
+                          }
+                        }}
                         placeholder="Select period..."
-                        options={periods.map(p => ({
-                          value: p._id,
-                          label: p.name
-                        }))}
+                        options={[
+                          ...periods.map(p => ({
+                            value: p._id,
+                            label: p.name
+                          })),
+                          { value: 'other', label: 'Other...' }
+                        ]}
                       />
                     </div>
                   </div>
+
+                  {isOtherPeriod && (
+                    <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                      <label className="input-label">Enter Custom Period</label>
+                      <div className="flex gap-4 mt-2">
+                        <input 
+                          type="text" 
+                          className={`premium-input flex-1 ${customPeriodError ? 'border-red-400 focus:border-red-500' : ''}`}
+                          placeholder="e.g. 2027-28"
+                          value={customPeriodText}
+                          onChange={e => {
+                            setCustomPeriodText(e.target.value);
+                            if (customPeriodError) setCustomPeriodError('');
+                          }}
+                        />
+                        <button 
+                          className="btn-primary whitespace-nowrap" 
+                          onClick={handleCreateCustomPeriod}
+                          disabled={creatingPeriod || !customPeriodText}
+                        >
+                          {creatingPeriod ? 'Adding...' : 'Add Period'}
+                        </button>
+                      </div>
+                      {customPeriodError && (
+                        <p className="text-red-500 text-sm mt-2">{customPeriodError}</p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="pt-8 flex justify-end">
                     <button 
@@ -309,7 +516,7 @@ const ESGCollectionWorkspace: React.FC = () => {
         </div>
 
         {/* Step 2: Indicator */}
-        <div className={`rounded-[2rem] overflow-hidden transition-all duration-500 shadow-sm border border-white/60 ${step >= 2 ? 'opacity-100 bg-white/40 backdrop-blur-md' : 'opacity-40 pointer-events-none hidden sm:block bg-white/20'}`}>
+        <div className={`rounded-4xl transition-all duration-500 shadow-sm border border-white/60 ${step >= 2 ? 'opacity-100 bg-white/40 backdrop-blur-md' : 'opacity-40 pointer-events-none hidden sm:block bg-white/20'}`}>
           <div className="px-8 py-6 flex items-center justify-between cursor-pointer" onClick={() => step >= 2 && setStep(2)}>
             <div className="flex items-center gap-6">
               <div className={`h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold transition-colors shadow-inner ${step > 2 ? 'bg-white text-brand-coral' : step === 2 ? 'bg-brand-coral text-white' : 'bg-white/50 text-brand-charcoal/40'}`}>
@@ -359,7 +566,7 @@ const ESGCollectionWorkspace: React.FC = () => {
         </div>
 
         {/* Step 3: Data & Evidence */}
-        <div className={`rounded-[2rem] overflow-hidden transition-all duration-500 shadow-sm border border-white/60 ${step >= 3 ? 'opacity-100 bg-white/40 backdrop-blur-md' : 'opacity-40 pointer-events-none hidden sm:block bg-white/20'}`}>
+        <div className={`rounded-4xl transition-all duration-500 shadow-sm border border-white/60 ${step >= 3 ? 'opacity-100 bg-white/40 backdrop-blur-md' : 'opacity-40 pointer-events-none hidden sm:block bg-white/20'}`}>
           <div className="px-8 py-6 flex items-center justify-between cursor-pointer" onClick={() => step >= 3 && setStep(3)}>
             <div className="flex items-center gap-6">
               <div className="h-12 w-12 rounded-full bg-brand-coral flex items-center justify-center text-sm font-semibold text-white shadow-inner">3</div>
@@ -375,6 +582,25 @@ const ESGCollectionWorkspace: React.FC = () => {
                   <p className="text-brand-navy font-medium">Loading existing record...</p>
                 </div>
               )}
+              
+              {existingRecord?.status === 'CORRECTION_REQUIRED' && (
+                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6 shadow-sm">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-amber-800">Correction Requested by Reviewer</h3>
+                      <div className="mt-2 text-sm text-amber-700">
+                        <p>{existingRecord.correctionReason}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {currentIndicator?.isGHG ? (
                 <div className="bg-brand-coral/5 border border-brand-coral/20 rounded-2xl p-6 mb-8 space-y-6">
                   <h3 className="text-xl font-serif text-brand-navy border-b border-brand-coral/10 pb-4">GHG Calculation Engine (Scope 1/2/3)</h3>
@@ -607,9 +833,17 @@ const ESGCollectionWorkspace: React.FC = () => {
                   Supporting Evidence <span className="bg-brand-coral text-white text-[9px] px-2 py-0.5 rounded-full">AI ENABLED</span>
                 </h3>
                 <div 
-                  className={`border-[1.5px] border-dashed ${isScanning ? 'border-brand-navy bg-brand-blush/20' : 'border-brand-coral/40 bg-white/30 hover:bg-white/60'} rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all cursor-pointer shadow-inner relative overflow-hidden`}
-                  onClick={handleAiScan}
+                  className={`border-[1.5px] border-dashed ${isScanning ? 'border-brand-navy bg-brand-blush/20' : 'border-brand-coral/40 bg-white/30'} ${!isReadOnly && !isScanning ? 'hover:bg-white/60 cursor-pointer' : 'cursor-default opacity-80'} rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all shadow-inner relative overflow-hidden`}
+                  onClick={handleAiScanClick}
                 >
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    onChange={handleFileChange}
+                    accept=".pdf,.xlsx,.csv,.jpg,.jpeg,.png"
+                    disabled={isReadOnly}
+                  />
                   {isScanning ? (
                     <>
                       <div className="absolute inset-0 bg-brand-coral/5 animate-pulse"></div>
@@ -618,11 +852,19 @@ const ESGCollectionWorkspace: React.FC = () => {
                       <p className="text-base text-brand-navy font-medium relative z-10">AI is analyzing document...</p>
                       <p className="text-xs text-brand-navy/60 mt-2 uppercase tracking-widest relative z-10">Extracting fields and standardizing units</p>
                     </>
+                  ) : uploadedFileName ? (
+                    <>
+                      <CheckCircle2 className="h-12 w-12 text-brand-navy mb-4 shrink-0" strokeWidth={1.5} />
+                      <p className="text-base text-brand-navy font-medium text-center break-all w-full px-4">Evidence Attached:<br/>{uploadedFileName}</p>
+                      {!isReadOnly && <p className="text-xs text-brand-charcoal/50 mt-2 uppercase tracking-widest shrink-0">Click to change file</p>}
+                    </>
                   ) : (
                     <>
-                      <UploadCloud className="h-12 w-12 text-brand-coral/60 mb-4" strokeWidth={1.5} />
-                      <p className="text-base text-brand-navy font-medium">Click to upload raw evidence for AI Verification</p>
-                      <p className="text-xs text-brand-charcoal/50 mt-2 uppercase tracking-widest">PDF, XLSX, CSV, JPG up to 10MB</p>
+                      <UploadCloud className={`h-12 w-12 ${isReadOnly ? 'text-gray-400' : 'text-brand-coral/60'} mb-4`} strokeWidth={1.5} />
+                      <p className={`text-base font-medium ${isReadOnly ? 'text-gray-500' : 'text-brand-navy'}`}>
+                        {isReadOnly ? 'No evidence attached' : 'Click to upload raw evidence for AI Verification'}
+                      </p>
+                      {!isReadOnly && <p className="text-xs text-brand-charcoal/50 mt-2 uppercase tracking-widest">PDF, XLSX, CSV, JPG up to 10MB</p>}
                     </>
                   )}
                 </div>

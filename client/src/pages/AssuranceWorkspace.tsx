@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getSamples, getFindings } from '../services/assuranceService';
@@ -67,7 +68,7 @@ const AssuranceWorkspace: React.FC = () => {
       setVerificationResult(data);
     } catch (error) {
       console.error('Error verifying evidence:', error);
-      alert('Network error verifying evidence');
+      toast.error('Network error verifying evidence');
     } finally {
       setIsVerifying(false);
     }

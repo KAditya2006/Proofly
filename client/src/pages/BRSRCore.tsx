@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 
 export default function BRSRCore() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
 
-  // In a real app, this period ID would come from a global Context or URL param
-  const periodId = '66e138a0c20a9a139a045330'; // Replace with a dynamic ID in production
+  // Get periodId from URL query param
+  const periodId = searchParams.get('periodId');
 
   useEffect(() => {
     const fetchCore = async () => {
+      if (!periodId) {
+        setLoading(false);
+        return;
+      }
       try {
         const response = await api.get(`/brsr-core/dashboard?reportingPeriodId=${periodId}`);
         setData(response.data);
