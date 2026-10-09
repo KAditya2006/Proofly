@@ -41,7 +41,13 @@ export const getDescendantOrgIds = async (orgId: mongoose.Types.ObjectId | strin
  */
 export const getAuthorizedProjectIds = async (organizationId: mongoose.Types.ObjectId | string): Promise<mongoose.Types.ObjectId[]> => {
   const descendantOrgIds = await getDescendantOrgIds(organizationId);
-  const projects = await Project.find({ organizationId: { $in: descendantOrgIds } }).select('_id');
+  const projects = await Project.find({
+    $or: [
+      { organizationId: { $in: descendantOrgIds } },
+      { subsidiaryId: { $in: descendantOrgIds } },
+      { businessUnitId: { $in: descendantOrgIds } }
+    ]
+  }).select('_id');
   return projects.map(p => p._id);
 };
 

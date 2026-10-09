@@ -318,7 +318,7 @@ const Dashboard: React.FC = () => {
               </div>
             </Link>
             
-            <Link to={`/esg/records?status=SUBMITTED${selectedPeriod ? `&periodId=${selectedPeriod}` : ''}`} className="block group">
+            <Link to="/reviews" className="block group">
               <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] border border-transparent group-hover:border-brand-coral/30 h-full cursor-pointer">
                 <span className="text-5xl font-serif font-bold mb-3 text-brand-coral group-hover:scale-105 transition-transform">{overview?.attentionRequired.pendingApprovals || 0}</span>
                 <span className="text-[10px] uppercase tracking-widest font-semibold text-brand-coral mt-1">Pending Approvals</span>

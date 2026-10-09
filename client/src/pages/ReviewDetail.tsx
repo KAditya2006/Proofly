@@ -280,7 +280,7 @@ const ReviewDetail: React.FC = () => {
                         <p className="text-xs text-gray-500">{(file.fileSize / 1024 / 1024).toFixed(2)} MB • {file.fileType}</p>
                       </div>
                     </div>
-                    <a href={`http://localhost:5000${file.fileUrl}`} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-brand-navy hover:bg-brand-blush rounded-md transition-colors">
+                    <a href={import.meta.env.PROD ? file.fileUrl : `http://localhost:5000${file.fileUrl}`} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-brand-navy hover:bg-brand-blush rounded-md transition-colors">
                       <Download className="h-4 w-4" />
                     </a>
                   </div>
@@ -295,7 +295,7 @@ const ReviewDetail: React.FC = () => {
           <div className="card p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Review Decision</h2>
             
-            {!['APPROVED', 'REJECTED'].includes(record.status) ? (
+            {!['APPROVED', 'REJECTED', 'CORRECTION_REQUIRED'].includes(record.status) ? (
               <div className="space-y-4">
                 {(user?.role === 'ADMIN' || user?.role === 'PROJECT_OFFICER' || 
                  (user?.role === 'BUSINESS_UNIT_REVIEWER' && record.status !== 'SUBMITTED')) ? (
@@ -372,9 +372,15 @@ const ReviewDetail: React.FC = () => {
               </div>
             ) : (
               <div className="p-4 bg-gray-50 rounded-md border border-gray-100 text-center">
-                <CheckCircle2 className={`h-8 w-8 mx-auto mb-2 ${record.status === 'APPROVED' ? 'text-green-500' : 'text-red-500'}`} />
+                {record.status === 'CORRECTION_REQUIRED' ? (
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2 text-amber-500" />
+                ) : (
+                  <CheckCircle2 className={`h-8 w-8 mx-auto mb-2 ${record.status === 'APPROVED' ? 'text-green-500' : 'text-red-500'}`} />
+                )}
                 <p className="text-sm font-medium text-gray-900">
-                  This submission has been {record.status.toLowerCase()}.
+                  {record.status === 'CORRECTION_REQUIRED' 
+                    ? 'A correction has been requested for this submission.' 
+                    : `This submission has been ${record.status.toLowerCase()}.`}
                 </p>
                 {record.correctionReason && (
                   <p className="text-xs text-gray-500 mt-2 italic">"{record.correctionReason}"</p>

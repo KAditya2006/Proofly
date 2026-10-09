@@ -32,7 +32,12 @@ export const getOverview = async (req: any, res: ExpressRes) => {
     const authorizedProjectIds = orgFilter.projectId?.$in || null;
     const readiness = await calculateReadiness(reportingPeriodId as string, authorizedProjectIds);
 
-    const pendingApprovals = await ESGRecord.countDocuments({ ...baseMatch, status: 'SUBMITTED' });
+    let statusFilter: any = 'SUBMITTED';
+    if (req.user.role === 'SUBSIDIARY_MANAGER' || req.user.role === 'GROUP_ESG_TEAM') {
+      statusFilter = { $in: ['SUBMITTED', 'UNDER_REVIEW'] };
+    }
+
+    const pendingApprovals = await ESGRecord.countDocuments({ ...baseMatch, status: statusFilter });
     const validationErrors = await ESGRecord.countDocuments({ ...baseMatch, status: 'VALIDATION_FAILED' });
     const missingEvidence = await ESGRecord.countDocuments({ ...baseMatch, evidenceIds: { $size: 0 } });
     const incompleteDisclosures = await ESGRecord.countDocuments({ ...baseMatch, status: 'DRAFT' });

@@ -75,23 +75,26 @@ const ESGCollectionWorkspace: React.FC = () => {
     const proj = projects.find(p => p._id === selectedProject);
     const ind = indicators.find(i => i._id === selectedIndicator);
     
-    const projName = proj ? proj.name.replace(/\s+/g, '_') : 'Project';
-    const indName = ind ? ind.name.replace(/\s+/g, '_') : 'Indicator';
+    const projName = proj ? proj.name.replace(/\\s+/g, '_') : 'Project';
+    const indName = ind ? ind.name.replace(/\\s+/g, '_') : 'Indicator';
     const finalFileName = `${projName}_${indName}.${ext}`;
+    
+    // Create a new File object with the proper name
+    const renamedFile = new File([file], finalFileName, { type: file.type });
     
     setIsScanning(true);
     
     try {
       const { uploadEvidence } = await import('../services/evidenceService');
       
-      const newEvidence = await uploadEvidence(file, {
+      const newEvidence = await uploadEvidence(renamedFile, {
         projectId: selectedProject,
         reportingPeriodId: selectedPeriod,
         indicatorId: selectedIndicator
       });
       
       setExistingEvidenceIds([newEvidence._id]);
-      setUploadedFileName(file.name);
+      setUploadedFileName(finalFileName);
       
       // Simulate AI document scan, extraction, and standardization
       setTimeout(() => {
@@ -864,7 +867,14 @@ const ESGCollectionWorkspace: React.FC = () => {
                       <p className={`text-base font-medium ${isReadOnly ? 'text-gray-500' : 'text-brand-navy'}`}>
                         {isReadOnly ? 'No evidence attached' : 'Click to upload raw evidence for AI Verification'}
                       </p>
-                      {!isReadOnly && <p className="text-xs text-brand-charcoal/50 mt-2 uppercase tracking-widest">PDF, XLSX, CSV, JPG up to 10MB</p>}
+                      {!isReadOnly && (
+                        <>
+                          <p className="text-xs text-brand-charcoal/50 mt-2 uppercase tracking-widest">PDF, XLSX, CSV, JPG up to 10MB</p>
+                          <p className="text-[10px] text-amber-600 font-semibold mt-4 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200">
+                            HINT: File should be named in format: [Project Name]_[Evidence Name]
+                          </p>
+                        </>
+                      )}
                     </>
                   )}
                 </div>

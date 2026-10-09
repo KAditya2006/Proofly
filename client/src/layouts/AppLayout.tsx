@@ -65,6 +65,7 @@ const AppLayout: React.FC = () => {
       navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
+        { name: 'Reviews', href: '/reviews', icon: ClipboardCheck },
         { name: 'All Data Records', href: '/esg/records', icon: FileText },
         { name: 'Analytics', href: '/analytics', icon: BarChart3 },
         { name: 'Evidence', href: '/evidence-intel', icon: FileText },
