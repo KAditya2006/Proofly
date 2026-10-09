@@ -300,9 +300,10 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Attention Items */}
-        <div className="bg-white/40 backdrop-blur-md rounded-[2rem] p-8 lg:col-span-3 border border-white/60 shadow-sm">
-          <h3 className="text-xs font-semibold text-brand-coral uppercase tracking-widest mb-8">Attention Required</h3>
+        {/* Attention Items (Hidden for Auditor) */}
+        {user?.role !== 'AUDITOR' && (
+          <div className="bg-white/40 backdrop-blur-md rounded-[2rem] p-8 lg:col-span-3 border border-white/60 shadow-sm">
+            <h3 className="text-xs font-semibold text-brand-coral uppercase tracking-widest mb-8">Attention Required</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <Link to={`/esg/records?status=DRAFT${selectedPeriod ? `&periodId=${selectedPeriod}` : ''}`} className="block group">
               <div className="flex flex-col items-center justify-center p-6 bg-white/60 rounded-[1.5rem] text-brand-navy group-hover:bg-white transition-colors shadow-[0_4px_20px_rgb(0,0,0,0.02)] h-full cursor-pointer">
@@ -333,6 +334,7 @@ const Dashboard: React.FC = () => {
             </Link>
           </div>
         </div>
+        )}
       </div>
 
       {user?.role !== 'AUDITOR' && myTasks.length > 0 && (

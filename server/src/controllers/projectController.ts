@@ -32,7 +32,9 @@ export const getProjects = async (req: any, res: ExpressRes) => {
     }
     
     // Populate organization names for the frontend
+    console.log('Project Query:', query);
     const total = await Project.countDocuments(query);
+    console.log('Total Projects found:', total);
     const projects = await Project.find(query)
       .populate('organizationId', 'name')
       .populate('businessUnitId', 'name')
@@ -41,6 +43,8 @@ export const getProjects = async (req: any, res: ExpressRes) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+      
+    console.log('Returned Projects:', projects.length);
       
     res.json({
       data: projects,

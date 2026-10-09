@@ -6,6 +6,7 @@ import { BarChart3, AlertTriangle, Layers, Target, ChevronRight, Activity, Calen
 import LineageDrawer from '../components/LineageDrawer';
 import { useAuth } from '../context/AuthContext';
 import { PremiumLoader } from '../components/PremiumLoader';
+import { CircularProgress } from '../components/CircularProgress';
 
 const AnalyticsDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -41,10 +42,10 @@ const AnalyticsDashboard: React.FC = () => {
       // Force scope based on RBAC if not admin/group
       if (user?.role === 'SUBSIDIARY_MANAGER') {
         setScopeLevel('SUBSIDIARY');
-        setScopeId(user.organizationId);
+        setScopeId(typeof user.organizationId === 'string' ? user.organizationId : (user.organizationId as any)._id);
       } else if (user?.role === 'BUSINESS_UNIT_REVIEWER') {
         setScopeLevel('BUSINESS_UNIT');
-        setScopeId(user.organizationId);
+        setScopeId(typeof user.organizationId === 'string' ? user.organizationId : (user.organizationId as any)._id);
       }
     });
   }, [user]);
@@ -132,77 +133,50 @@ const AnalyticsDashboard: React.FC = () => {
         <>
           {/* Readiness Engine Summary */}
           {readiness && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-1 rounded-[2rem] p-8 bg-brand-navy text-white flex flex-col justify-center text-center sm:text-left shadow-lg relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-500"></div>
-                <h3 className="text-brand-coral text-[10px] font-bold uppercase tracking-[0.2em] mb-4">BRSR Readiness Score</h3>
-                <div className="text-6xl font-serif font-bold mb-6">{readiness.overall}%</div>
-                <div className="w-full bg-white/10 rounded-full h-1 mb-4 overflow-hidden">
-                  <div className="bg-brand-coral h-1 rounded-full transition-all duration-1000" style={{ width: `${readiness.overall}%` }}></div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-5 rounded-[2rem] p-8 bg-gradient-to-br from-brand-navy via-[#1f3045] to-[#0e1622] text-white flex flex-col justify-center text-center shadow-[0_15px_40px_-15px_rgba(20,30,45,0.7)] relative overflow-hidden group border border-white/10 backdrop-blur-xl">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-coral/20 rounded-full blur-[80px] mix-blend-screen transition-transform duration-1000 group-hover:scale-150"></div>
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500/20 rounded-full blur-[80px] mix-blend-screen transition-transform duration-1000 group-hover:scale-150"></div>
+                
+                <h3 className="text-white/70 text-xs font-bold uppercase tracking-[0.3em] mb-8 relative z-10">System Readiness</h3>
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="text-8xl font-serif font-black tracking-tighter mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/60 drop-shadow-sm">
+                    {readiness.overall}<span className="text-4xl text-white/50 ml-1">%</span>
+                  </div>
+                  <div className="h-1.5 w-24 bg-white/10 rounded-full mt-4 overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-brand-coral to-pink-500 rounded-full" style={{ width: `${readiness.overall}%` }}></div>
+                  </div>
                 </div>
-                <p className="text-xs text-white/50 leading-relaxed font-medium">Dynamically calculated from data completeness, validation, and approvals.</p>
+                <p className="text-sm text-white/50 leading-relaxed font-medium mt-8 relative z-10 max-w-xs mx-auto">Calculated in real-time from data completeness, validation status, and audit trails.</p>
               </div>
               
-              <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                <div className="bg-white/40 backdrop-blur-md border border-white/60 shadow-sm rounded-[1.5rem] p-6 flex flex-col justify-between hover:bg-white/60 transition-colors">
-                  <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-charcoal/50">Data Covered</span>
-                      <span className="text-sm font-bold text-brand-navy">{readiness.dataCompleteness}%</span>
-                    </div>
-                    <div className="w-full bg-white/60 rounded-full h-1.5 mb-4 shadow-inner overflow-hidden">
-                      <div className="bg-brand-coral h-1.5 rounded-full" style={{ width: `${readiness.dataCompleteness}%` }}></div>
-                    </div>
+              <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                {[
+                  { label: "Data Covered", value: readiness.dataCompleteness, missing: readiness.breakdown.missingData, missingLabel: "missing", color: "text-blue-500" },
+                  { label: "Evidence", value: readiness.evidenceCoverage, missing: readiness.breakdown.missingEvidence, missingLabel: "missing", color: "text-brand-coral" },
+                  { label: "Approvals", value: readiness.approval, missing: readiness.breakdown.pendingApproval, missingLabel: "pending", color: "text-green-500" },
+                  { label: "BRSR Mapped", value: readiness.mapping, missing: readiness.breakdown.missingMapping, missingLabel: "unmapped", color: "text-purple-500" }
+                ].map((stat, i) => (
+                  <div key={i} className="bg-white/40 backdrop-blur-xl border border-white/60 shadow-lg rounded-[2rem] p-6 flex flex-col items-center justify-center hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div className={`absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                    <CircularProgress 
+                      value={stat.value} 
+                      size={90} 
+                      strokeWidth={8} 
+                      color={stat.color} 
+                      trackColor="text-white/60"
+                      className="mb-4 drop-shadow-sm"
+                      label={`${stat.value}%`}
+                    />
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-brand-navy/80 text-center leading-tight mb-2">{stat.label}</span>
+                    
+                    {stat.missing > 0 ? (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 flex items-center bg-amber-100/50 px-2 py-1 rounded-full"><AlertTriangle className="h-3 w-3 mr-1"/> {stat.missing} {stat.missingLabel}</span>
+                    ) : (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 flex items-center bg-green-100/50 px-2 py-1 rounded-full">Perfect</span>
+                    )}
                   </div>
-                  {readiness.breakdown.missingData > 0 && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 flex items-center mt-2"><AlertTriangle className="h-3 w-3 mr-1"/> {readiness.breakdown.missingData} missing</span>
-                  )}
-                </div>
-
-                <div className="bg-white/40 backdrop-blur-md border border-white/60 shadow-sm rounded-[1.5rem] p-6 flex flex-col justify-between hover:bg-white/60 transition-colors">
-                  <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-charcoal/50">Evidence</span>
-                      <span className="text-sm font-bold text-brand-navy">{readiness.evidenceCoverage}%</span>
-                    </div>
-                    <div className="w-full bg-white/60 rounded-full h-1.5 mb-4 shadow-inner overflow-hidden">
-                      <div className="bg-brand-coral h-1.5 rounded-full" style={{ width: `${readiness.evidenceCoverage}%` }}></div>
-                    </div>
-                  </div>
-                  {readiness.breakdown.missingEvidence > 0 && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 flex items-center mt-2"><AlertTriangle className="h-3 w-3 mr-1"/> {readiness.breakdown.missingEvidence} missing</span>
-                  )}
-                </div>
-
-                <div className="bg-white/40 backdrop-blur-md border border-white/60 shadow-sm rounded-[1.5rem] p-6 flex flex-col justify-between hover:bg-white/60 transition-colors">
-                  <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-charcoal/50">Approval Status</span>
-                      <span className="text-sm font-bold text-brand-navy">{readiness.approval}%</span>
-                    </div>
-                    <div className="w-full bg-white/60 rounded-full h-1.5 mb-4 shadow-inner overflow-hidden">
-                      <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${readiness.approval}%` }}></div>
-                    </div>
-                  </div>
-                  {readiness.breakdown.pendingApproval > 0 && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 flex items-center mt-2"><AlertTriangle className="h-3 w-3 mr-1"/> {readiness.breakdown.pendingApproval} pending</span>
-                  )}
-                </div>
-
-                <div className="bg-white/40 backdrop-blur-md border border-white/60 shadow-sm rounded-[1.5rem] p-6 flex flex-col justify-between hover:bg-white/60 transition-colors">
-                  <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-charcoal/50">BRSR Mapped</span>
-                      <span className="text-sm font-bold text-brand-navy">{readiness.mapping}%</span>
-                    </div>
-                    <div className="w-full bg-white/60 rounded-full h-1.5 mb-4 shadow-inner overflow-hidden">
-                      <div className="bg-brand-coral h-1.5 rounded-full" style={{ width: `${readiness.mapping}%` }}></div>
-                    </div>
-                  </div>
-                  {readiness.breakdown.missingMapping > 0 && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 flex items-center mt-2"><AlertTriangle className="h-3 w-3 mr-1"/> {readiness.breakdown.missingMapping} unmapped</span>
-                  )}
-                </div>
+                ))}
               </div>
             </div>
           )}
@@ -227,33 +201,36 @@ const AnalyticsDashboard: React.FC = () => {
                 {kpis.map((kpi) => (
                   <div 
                     key={kpi.indicator._id} 
-                    className="bg-white/40 backdrop-blur-md rounded-[2rem] p-8 border border-white/60 shadow-[0_4px_20px_rgb(0,0,0,0.02)] hover:bg-white/80 transition-all cursor-pointer group"
+                    className="relative bg-white/40 backdrop-blur-xl rounded-[2rem] p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:bg-white/70 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-500 cursor-pointer group overflow-hidden"
                     onClick={() => handleKpiClick(kpi.indicator._id, kpi.indicator.name)}
                   >
-                    <div className="flex justify-between items-start mb-6">
+                    <div className="absolute -right-16 -top-16 w-32 h-32 bg-brand-coral/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    
+                    <div className="relative z-10 flex justify-between items-start mb-6">
                       <div>
-                        <span className="text-[10px] font-bold text-brand-navy bg-white px-3 py-1.5 rounded-full mb-4 inline-block uppercase tracking-widest shadow-sm border border-brand-coral/10">
+                        <span className="text-[10px] font-bold text-brand-navy bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full mb-4 inline-block uppercase tracking-widest shadow-sm border border-brand-coral/20">
                           {kpi.indicator.code}
                         </span>
                         <h3 className="text-base font-semibold text-brand-navy line-clamp-2 leading-relaxed pr-4" title={kpi.indicator.name}>
                           {kpi.indicator.name}
                         </h3>
                       </div>
-                      <div className="h-10 w-10 shrink-0 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                        <ChevronRight className="h-5 w-5 text-brand-coral" strokeWidth={2} />
+                      <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-brand-navy to-[#1f3045] flex items-center justify-center shadow-md group-hover:rotate-45 group-hover:scale-110 transition-all duration-300">
+                        <ChevronRight className="h-5 w-5 text-white" strokeWidth={2.5} />
                       </div>
                     </div>
                     
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-5xl font-serif font-bold text-brand-navy">{kpi.value.toLocaleString()}</span>
-                      <span className="text-xs font-bold uppercase tracking-wider text-brand-charcoal/40">{kpi.indicator.unit}</span>
+                    <div className="relative z-10 flex items-baseline gap-3 mt-4">
+                      <span className="text-6xl font-serif font-black tracking-tighter text-brand-navy drop-shadow-sm group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-brand-navy group-hover:to-brand-coral transition-all duration-500">{kpi.value.toLocaleString()}</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-brand-coral/80">{kpi.indicator.unit}</span>
                     </div>
                     
-                    <div className="mt-8 pt-6 border-t border-brand-coral/10 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-brand-charcoal/50">
+                    <div className="relative z-10 mt-8 pt-6 border-t border-brand-charcoal/10 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-brand-charcoal/60">
                       <span className="flex items-center gap-1.5">
-                        <Target className="h-3.5 w-3.5 text-brand-coral/70" strokeWidth={2} /> {kpi.indicator.aggregationMethod}
+                        <Target className="h-4 w-4 text-brand-coral" strokeWidth={2} /> {kpi.indicator.aggregationMethod}
                       </span>
-                      <span>{kpi.contributorsCount} Sources</span>
+                      <span className="bg-white/50 px-3 py-1 rounded-full shadow-inner">{kpi.contributorsCount} Sources</span>
                     </div>
                   </div>
                 ))}

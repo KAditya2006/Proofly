@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import ESGRecord from '../models/ESGRecord';
 import ESGIndicator from '../models/ESGIndicator';
 import Project from '../models/Project';
+import '../models/BRSRCoreConfig';
+import '../models/ValueChainPartner';
 
 export const calculateReadiness = async (reportingPeriodId: string, orgProjectIds?: any[] | null) => {
   // 1. Total applicable indicators (active & mandatory)

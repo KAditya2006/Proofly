@@ -75,61 +75,61 @@ const AssuranceWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif font-bold text-brand-navy">Assurance Workspace</h1>
-        <p className="text-gray-500 text-sm mt-1">Review sampled ESG records and manage assurance findings.</p>
+    <div className="space-y-8">
+      <div className="border-b border-brand-coral/20 pb-6">
+        <h1 className="page-title">Assurance Workspace</h1>
+        <p className="page-subtitle mt-4">Review sampled ESG records and manage assurance findings.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center text-gray-500 mb-2">
-            <Search className="w-5 h-5 mr-2" />
-            <span className="font-medium">Total Samples</span>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white/40 backdrop-blur-md p-6 rounded-[1.5rem] shadow-sm border border-white/60 flex flex-col justify-between hover:bg-white transition-colors">
+          <div className="flex items-center text-brand-charcoal/70 mb-4">
+            <Search className="w-5 h-5 mr-3 text-brand-navy" />
+            <span className="text-xs uppercase tracking-widest font-bold">Total Samples</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">{samples.length}</div>
+          <div className="text-5xl font-serif font-bold text-brand-navy">{samples.length}</div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center text-gray-500 mb-2">
-            <Clock className="w-5 h-5 mr-2 text-brand-coral" />
-            <span className="font-medium">Under Review</span>
+        <div className="bg-white/40 backdrop-blur-md p-6 rounded-[1.5rem] shadow-sm border border-white/60 flex flex-col justify-between hover:bg-white transition-colors">
+          <div className="flex items-center text-brand-charcoal/70 mb-4">
+            <Clock className="w-5 h-5 mr-3 text-brand-coral" />
+            <span className="text-xs uppercase tracking-widest font-bold">Under Review</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-5xl font-serif font-bold text-brand-navy">
             {samples.filter(s => s.status === 'UNDER_REVIEW').length}
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center text-gray-500 mb-2">
-            <CheckCircle2 className="w-5 h-5 mr-2 text-green-500" />
-            <span className="font-medium">Cleared</span>
+        <div className="bg-white/40 backdrop-blur-md p-6 rounded-[1.5rem] shadow-sm border border-white/60 flex flex-col justify-between hover:bg-white transition-colors">
+          <div className="flex items-center text-brand-charcoal/70 mb-4">
+            <CheckCircle2 className="w-5 h-5 mr-3 text-green-600" />
+            <span className="text-xs uppercase tracking-widest font-bold">Cleared</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-5xl font-serif font-bold text-brand-navy">
             {samples.filter(s => s.status === 'CLEARED').length}
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center text-gray-500 mb-2">
-            <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
-            <span className="font-medium">Open Findings</span>
+        <div className="bg-white/40 backdrop-blur-md p-6 rounded-[1.5rem] shadow-sm border border-white/60 flex flex-col justify-between hover:bg-white transition-colors">
+          <div className="flex items-center text-brand-charcoal/70 mb-4">
+            <AlertTriangle className="w-5 h-5 mr-3 text-brand-coral" />
+            <span className="text-xs uppercase tracking-widest font-bold">Open Findings</span>
           </div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-5xl font-serif font-bold text-brand-coral">
             {findings.filter(f => f.status === 'OPEN').length}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <h3 className="font-medium text-gray-900">Assurance Samples</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white/40 backdrop-blur-md rounded-[2rem] shadow-sm border border-white/60 overflow-hidden flex flex-col">
+          <div className="px-8 py-6 border-b border-brand-coral/20 bg-white/50">
+            <h3 className="text-xl font-serif font-bold text-brand-navy">Assurance Samples</h3>
           </div>
-          <div className="p-0">
+          <div className="p-0 flex-1">
             {loading ? (
-              <div className="p-4 text-center text-gray-500">Loading samples...</div>
+              <div className="p-8 text-center text-brand-charcoal/60 font-medium">Loading samples...</div>
             ) : samples.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">No samples selected for assurance.</div>
+              <div className="p-8 text-center text-brand-charcoal/60 font-medium">No samples selected for assurance.</div>
             ) : (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-brand-coral/10">
                 {samples.map(sample => (
                   <li key={sample._id} className="p-4 hover:bg-gray-50">
                     <div className="flex justify-between items-start">

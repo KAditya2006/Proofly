@@ -37,15 +37,19 @@ const ProjectsPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const projPromise = getProjects().catch(() => []);
+      const orgPromise = getOrganizations().catch(() => []);
+      const usersPromise = user?.role === 'ADMIN' ? userService.getUsers().catch(() => []) : Promise.resolve([]);
+
       const [projData, orgData, usersData] = await Promise.all([
-        getProjects(),
-        getOrganizations(),
-        userService.getUsers()
+        projPromise,
+        orgPromise,
+        usersPromise
       ]);
-      setProjects(projData);
-      setOrganizations(orgData);
-      // Store all users in availablePOs (or rename it to just users, but we keep the state name to minimize changes)
-      setAvailablePOs(usersData);
+      
+      setProjects(projData as Project[]);
+      setOrganizations(orgData as Organization[]);
+      setAvailablePOs(usersData as User[]);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -546,9 +550,25 @@ const ProjectsPage: React.FC = () => {
                                 <Clock className="h-3 w-3" /> Updated: {new Date(record.updatedAt).toLocaleDateString()}
                               </span>
                             </div>
-                            <div className="mt-2 flex gap-4 text-xs font-mono text-gray-500">
-                              <p>PO: {record.submittedBy ? 'Submitted' : 'Pending'}</p>
-                              <p>BU: {record.approvedBy ? 'Verified' : 'Pending'}</p>
+                            <div className="mt-2 flex flex-col gap-1 text-xs font-mono text-gray-500 bg-gray-50/50 p-2 rounded border border-gray-100">
+                              <div className="flex justify-between">
+                                <span className="font-semibold">Project Officer (PO):</span>
+                                <span className={record.submittedAt ? 'text-blue-600' : 'text-gray-400'}>
+                                  {record.submittedAt ? `Submitted on ${new Date(record.submittedAt).toLocaleDateString()} ${new Date(record.submittedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'Pending Submission'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="font-semibold">BU Reviewer:</span>
+                                <span className={record.buApprovedAt ? 'text-blue-600' : 'text-gray-400'}>
+                                  {record.buApprovedAt ? `Verified on ${new Date(record.buApprovedAt).toLocaleDateString()} ${new Date(record.buApprovedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'Pending Verification'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="font-semibold">Subsidiary Admin:</span>
+                                <span className={record.approvedAt ? 'text-emerald-600' : 'text-gray-400'}>
+                                  {record.approvedAt ? `Approved on ${new Date(record.approvedAt).toLocaleDateString()} ${new Date(record.approvedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'Pending Approval'}
+                                </span>
+                              </div>
                             </div>
                           </div>
                           

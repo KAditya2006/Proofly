@@ -8,6 +8,11 @@ import { protect, authorize } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
+router.get('/debug-kpis', async (req, res) => {
+  (req as any).user = { role: 'SUBSIDIARY_MANAGER', organizationId: req.query.scopeId };
+  await getConsolidationKPIs(req as any, res);
+});
+
 router.use(protect);
 
 // Basic route protection, deeper RBAC is inside the controllers

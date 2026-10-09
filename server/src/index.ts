@@ -12,6 +12,8 @@ import { checkSLAAndNotify } from './services/slaService';
 
 dotenv.config();
 
+// Force nodemon restart
+
 const app: Express = express();
 const port = process.env.PORT || 5000;
 
