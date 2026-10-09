@@ -15,6 +15,7 @@ const logger_1 = require("./utils/logger");
 const errorHandler_1 = require("./middleware/errorHandler");
 const slaService_1 = require("./services/slaService");
 dotenv_1.default.config();
+// Force nodemon restart
 const app = (0, express_1.default)();
 const port = process.env.PORT || 5000;
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
@@ -78,7 +79,7 @@ app.use((req, res, next) => {
     next();
 });
 // Serve uploads statically (for MVP)
-app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../../uploads')));
+app.use('/uploads', express_1.default.static(path_1.default.join(process.cwd(), 'uploads')));
 // Routes
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/users', userRoutes_1.default);

@@ -8,6 +8,8 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const ESGRecord_1 = __importDefault(require("../models/ESGRecord"));
 const ESGIndicator_1 = __importDefault(require("../models/ESGIndicator"));
 const Project_1 = __importDefault(require("../models/Project"));
+require("../models/BRSRCoreConfig");
+require("../models/ValueChainPartner");
 const calculateReadiness = async (reportingPeriodId, orgProjectIds) => {
     // 1. Total applicable indicators (active & mandatory)
     const mandatoryIndicators = await ESGIndicator_1.default.find({ status: 'ACTIVE', mandatory: true });

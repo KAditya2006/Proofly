@@ -42,7 +42,13 @@ exports.getDescendantOrgIds = getDescendantOrgIds;
  */
 const getAuthorizedProjectIds = async (organizationId) => {
     const descendantOrgIds = await (0, exports.getDescendantOrgIds)(organizationId);
-    const projects = await Project_1.default.find({ organizationId: { $in: descendantOrgIds } }).select('_id');
+    const projects = await Project_1.default.find({
+        $or: [
+            { organizationId: { $in: descendantOrgIds } },
+            { subsidiaryId: { $in: descendantOrgIds } },
+            { businessUnitId: { $in: descendantOrgIds } }
+        ]
+    }).select('_id');
     return projects.map(p => p._id);
 };
 exports.getAuthorizedProjectIds = getAuthorizedProjectIds;

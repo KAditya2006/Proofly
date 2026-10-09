@@ -3,69 +3,130 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendVerificationEmail = void 0;
+exports.sendWorkflowNotification = exports.sendForgotPasswordOTP = exports.sendWelcomeEmail = exports.generateOTP = exports.generateSecurePassword = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
-let transporter;
-const initTransporter = async () => {
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-        transporter = nodemailer_1.default.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
+const crypto_1 = __importDefault(require("crypto"));
+// Setup Nodemailer transporter
+const transporter = nodemailer_1.default.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+    },
+});
+const generateSecurePassword = (length = 10) => {
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+        const randomIndex = crypto_1.default.randomInt(0, charset.length);
+        password += charset[randomIndex];
     }
-    else {
-        // Generate test account for local development if real SMTP isn't set up
-        const testAccount = await nodemailer_1.default.createTestAccount();
-        console.log('No SMTP credentials found in .env. Using Ethereal Email for testing.');
-        console.log(`Ethereal User: ${testAccount.user}, Pass: ${testAccount.pass}`);
-        transporter = nodemailer_1.default.createTransport({
-            host: 'smtp.ethereal.email',
-            port: 587,
-            secure: false,
-            auth: {
-                user: testAccount.user,
-                pass: testAccount.pass,
-            },
-        });
-    }
+    return password;
 };
-initTransporter().catch(console.error);
-const sendVerificationEmail = async (to, code) => {
+exports.generateSecurePassword = generateSecurePassword;
+const generateOTP = () => {
+    return crypto_1.default.randomInt(100000, 999999).toString();
+};
+exports.generateOTP = generateOTP;
+const sendWelcomeEmail = async (email, userDetails, dummyPassword) => {
     const mailOptions = {
-        from: process.env.EMAIL_FROM || '"MEIL ESG360" <noreply@meil.com>',
-        to,
-        subject: 'Verify your Email - MEIL ESG360',
+        from: `"Proofly (MEIL ESG)" <${process.env.EMAIL_FROM}>`,
+        to: email,
+        subject: 'Welcome to Proofly - Account Created',
         html: `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
-        <h2 style="color: #0b2239; text-align: center;">Verify Your Email</h2>
-        <p style="color: #333;">Hello,</p>
-        <p style="color: #333;">Thank you for registering on MEIL ESG360 (Proofly). To complete your registration and log in, please enter the following 4-digit verification code:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #ff6b6b; background: #fff5f5; padding: 15px 30px; border-radius: 8px;">${code}</span>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <h2 style="color: #031428;">Welcome to Proofly</h2>
+        <p>Dear ${userDetails.name},</p>
+        <p>Your account has been successfully created on the MEIL ESG360 (Proofly) platform by the Administrator.</p>
+        
+        <h3 style="color: #E25E5E;">Your Account Details:</h3>
+        <ul>
+          <li><strong>Employee ID:</strong> ${userDetails.employeeId}</li>
+          <li><strong>Role:</strong> ${userDetails.role}</li>
+          <li><strong>Email:</strong> ${email}</li>
+        </ul>
+        
+        <div style="background-color: #f5f7fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Temporary Password:</strong> <span style="font-family: monospace; font-size: 16px; font-weight: bold; color: #E25E5E;">${dummyPassword}</span></p>
         </div>
-        <p style="color: #333;">This code will expire in 10 minutes.</p>
-        <p style="color: #777; font-size: 12px; text-align: center; margin-top: 40px;">If you didn't request this code, you can safely ignore this email.</p>
+        
+        <p><strong>Important:</strong> You will be required to change your password immediately upon your first login for security purposes.</p>
+        
+        <p style="margin-top: 30px;">Best Regards,<br>MEIL Group ESG Team</p>
       </div>
     `,
     };
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Message sent: %s', info.messageId);
-        // Log the Ethereal URL if using test account
-        const testUrl = nodemailer_1.default.getTestMessageUrl(info);
-        if (testUrl) {
-            console.log('Preview URL: %s', testUrl);
-        }
-        return true;
+        await transporter.sendMail(mailOptions);
+        console.log(`Welcome email sent to ${email}`);
     }
     catch (error) {
-        console.error('Error sending email:', error);
-        return false;
+        console.error('Error sending welcome email:', error);
     }
 };
-exports.sendVerificationEmail = sendVerificationEmail;
+exports.sendWelcomeEmail = sendWelcomeEmail;
+const sendForgotPasswordOTP = async (email, otp) => {
+    const mailOptions = {
+        from: `"Proofly Support" <${process.env.EMAIL_FROM}>`,
+        to: email,
+        subject: 'Proofly - Password Reset OTP',
+        html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <h2 style="color: #031428;">Password Reset Request</h2>
+        <p>We received a request to reset your password for your Proofly account.</p>
+        
+        <div style="background-color: #f5f7fa; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; color: #555;">Your One-Time Password (OTP) is:</p>
+          <h1 style="margin: 10px 0; font-family: monospace; font-size: 32px; color: #E25E5E; letter-spacing: 5px;">${otp}</h1>
+        </div>
+        
+        <p>This OTP is valid for 10 minutes. Do not share this with anyone.</p>
+        <p>If you did not request this, please ignore this email or contact the administrator.</p>
+        
+        <p style="margin-top: 30px;">Best Regards,<br>Proofly Security</p>
+      </div>
+    `,
+    };
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`OTP email sent to ${email}`);
+    }
+    catch (error) {
+        console.error('Error sending OTP email:', error);
+        throw new Error('Failed to send email');
+    }
+};
+exports.sendForgotPasswordOTP = sendForgotPasswordOTP;
+const sendWorkflowNotification = async (email, subject, actionDetails) => {
+    const mailOptions = {
+        from: `"Proofly Notifications" <${process.env.EMAIL_FROM}>`,
+        to: email,
+        subject: `Proofly Notification: ${subject}`,
+        html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <h2 style="color: #031428;">${subject}</h2>
+        <p>Hello,</p>
+        <p>There is an update regarding a data record on the Proofly platform.</p>
+        
+        <div style="background-color: #f5f7fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Indicator:</strong> ${actionDetails.indicatorName}</p>
+          <p><strong>Status:</strong> <span style="color: ${actionDetails.status === 'APPROVED' ? 'green' : '#E25E5E'}; font-weight: bold;">${actionDetails.status}</span></p>
+          <p><strong>Comments:</strong> ${actionDetails.comment || 'None'}</p>
+          <p><strong>Action By:</strong> ${actionDetails.actionBy}</p>
+        </div>
+        
+        <p>Please log in to the portal to view the details.</p>
+        <p style="margin-top: 30px;">Best Regards,<br>Proofly System</p>
+      </div>
+    `,
+    };
+    try {
+        await transporter.sendMail(mailOptions);
+    }
+    catch (error) {
+        console.error('Error sending workflow email:', error);
+    }
+};
+exports.sendWorkflowNotification = sendWorkflowNotification;

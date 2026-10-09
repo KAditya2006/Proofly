@@ -38,8 +38,8 @@ const getConsolidatedKPIs = async (filters) => {
             // We group by indicator to calculate the total/average
             $group: {
                 _id: '$indicatorId',
-                totalSum: { $sum: { $toDouble: '$value' } },
-                avgValue: { $avg: { $toDouble: '$value' } },
+                totalSum: { $sum: { $convert: { input: '$value', to: 'double', onError: 0, onNull: 0 } } },
+                avgValue: { $avg: { $convert: { input: '$value', to: 'double', onError: null, onNull: null } } },
                 count: { $sum: 1 },
                 recordIds: { $push: '$_id' } // For data lineage tracing
             }

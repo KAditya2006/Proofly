@@ -3,12 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMe = exports.changePassword = exports.loginUser = void 0;
+exports.forgotPassword = exports.getMe = exports.changePassword = exports.loginUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const errorHandler_1 = require("../middleware/errorHandler");
 const auditLogger_1 = require("../utils/auditLogger");
+const emailService_1 = require("../utils/emailService");
 const generateToken = (id) => {
     return jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '8h',
@@ -122,3 +123,37 @@ const getMe = async (req, res) => {
     }
 };
 exports.getMe = getMe;
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        res.status(400).json({ message: 'Email is required' });
+        return;
+    }
+    try {
+        const user = await User_1.default.findOne({ email });
+        if (!user) {
+            // Return 200 to prevent email enumeration attacks
+            res.json({ success: true, message: 'If an account with this email exists, a reset link has been sent.' });
+            return;
+        }
+        const dummyPassword = (0, emailService_1.generateSecurePassword)(12);
+        const salt = await bcryptjs_1.default.genSalt(10);
+        user.passwordHash = await bcryptjs_1.default.hash(dummyPassword, salt);
+        user.mustChangePassword = true;
+        await user.save();
+        // Reusing OTP email function to send dummy password since it's the requested flow
+        await (0, emailService_1.sendForgotPasswordOTP)(email, dummyPassword);
+        await (0, auditLogger_1.logAudit)({
+            userId: user._id,
+            action: 'PASSWORD_RESET_REQUESTED',
+            entityType: 'User',
+            entityId: user._id.toString(),
+        });
+        res.json({ success: true, message: 'Password reset successful. Check your email.' });
+    }
+    catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ message: 'Server error processing request' });
+    }
+};
+exports.forgotPassword = forgotPassword;

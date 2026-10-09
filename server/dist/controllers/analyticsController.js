@@ -31,7 +31,11 @@ const getOverview = async (req, res) => {
         const baseMatch = { reportingPeriodId: new mongoose_1.default.Types.ObjectId(reportingPeriodId), ...orgFilter };
         const authorizedProjectIds = orgFilter.projectId?.$in || null;
         const readiness = await (0, readinessService_1.calculateReadiness)(reportingPeriodId, authorizedProjectIds);
-        const pendingApprovals = await ESGRecord_1.default.countDocuments({ ...baseMatch, status: 'SUBMITTED' });
+        let statusFilter = 'SUBMITTED';
+        if (req.user.role === 'SUBSIDIARY_MANAGER' || req.user.role === 'GROUP_ESG_TEAM') {
+            statusFilter = { $in: ['SUBMITTED', 'UNDER_REVIEW'] };
+        }
+        const pendingApprovals = await ESGRecord_1.default.countDocuments({ ...baseMatch, status: statusFilter });
         const validationErrors = await ESGRecord_1.default.countDocuments({ ...baseMatch, status: 'VALIDATION_FAILED' });
         const missingEvidence = await ESGRecord_1.default.countDocuments({ ...baseMatch, evidenceIds: { $size: 0 } });
         const incompleteDisclosures = await ESGRecord_1.default.countDocuments({ ...baseMatch, status: 'DRAFT' });

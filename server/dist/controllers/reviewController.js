@@ -10,6 +10,7 @@ const ReportingPeriod_1 = __importDefault(require("../models/ReportingPeriod"));
 const auditLogger_1 = require("../utils/auditLogger");
 const esgRecordController_1 = require("./esgRecordController");
 const errorHandler_1 = require("../middleware/errorHandler");
+const emailService_1 = require("../utils/emailService");
 // @desc    Get pending reviews
 // @route   GET /api/reviews
 // @access  Private (Reviewers/Managers)
@@ -92,6 +93,16 @@ const approveSubmission = async (req, res) => {
             entityId: record._id,
             ipAddress: req.ip
         });
+        await record.populate(['indicatorId', 'submittedBy']);
+        const submittedBy = record.submittedBy;
+        if (submittedBy && submittedBy.email) {
+            (0, emailService_1.sendWorkflowNotification)(submittedBy.email, 'Record Approved', {
+                indicatorName: record.indicatorId?.name || 'ESG Indicator',
+                status: 'APPROVED',
+                comment: 'Approved by reviewer',
+                actionBy: req.user.name
+            });
+        }
         res.json(record);
     }
     catch (error) {
@@ -138,6 +149,16 @@ const requestCorrection = async (req, res) => {
             after: { reason },
             ipAddress: req.ip
         });
+        await record.populate(['indicatorId', 'submittedBy']);
+        const submittedBy = record.submittedBy;
+        if (submittedBy && submittedBy.email) {
+            (0, emailService_1.sendWorkflowNotification)(submittedBy.email, 'Correction Required', {
+                indicatorName: record.indicatorId?.name || 'ESG Indicator',
+                status: 'CORRECTION_REQUIRED',
+                comment: reason,
+                actionBy: req.user.name
+            });
+        }
         res.json(record);
     }
     catch (error) {
@@ -184,6 +205,16 @@ const rejectSubmission = async (req, res) => {
             after: { reason },
             ipAddress: req.ip
         });
+        await record.populate(['indicatorId', 'submittedBy']);
+        const submittedBy = record.submittedBy;
+        if (submittedBy && submittedBy.email) {
+            (0, emailService_1.sendWorkflowNotification)(submittedBy.email, 'Record Rejected', {
+                indicatorName: record.indicatorId?.name || 'ESG Indicator',
+                status: 'REJECTED',
+                comment: reason,
+                actionBy: req.user.name
+            });
+        }
         res.json(record);
     }
     catch (error) {

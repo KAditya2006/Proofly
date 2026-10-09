@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   LogOut,
   Menu,
+  Network,
   X,
   Bell,
   Settings,
@@ -48,6 +49,7 @@ const AppLayout: React.FC = () => {
     case 'PROJECT_OFFICER':
       navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'My Network', href: '/network', icon: Network },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'Data Collection', href: '/esg/collection', icon: FileText },
         { name: 'Bulk Upload', href: '/bulk-upload', icon: ClipboardCheck },
@@ -56,6 +58,7 @@ const AppLayout: React.FC = () => {
     case 'BUSINESS_UNIT_REVIEWER':
       navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'My Network', href: '/network', icon: Network },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'Reviews', href: '/reviews', icon: ClipboardCheck },
         { name: 'All Data Records', href: '/esg/records', icon: FileText },
@@ -64,6 +67,7 @@ const AppLayout: React.FC = () => {
     case 'SUBSIDIARY_MANAGER':
       navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'My Network', href: '/network', icon: Network },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'Reviews', href: '/reviews', icon: ClipboardCheck },
         { name: 'All Data Records', href: '/esg/records', icon: FileText },
@@ -74,6 +78,7 @@ const AppLayout: React.FC = () => {
     case 'GROUP_ESG_TEAM':
       navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'My Network', href: '/network', icon: Network },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'ESG Hub', href: '/esg', icon: Leaf },
         { name: 'BRSR', href: '/brsr/core', icon: FileText },

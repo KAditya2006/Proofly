@@ -4,7 +4,8 @@ import {
   getOrganizationById,
   createOrganization,
   updateOrganization,
-  deleteOrganization
+  deleteOrganization,
+  getMyNetwork
 } from '../controllers/organizationController';
 import { protect, authorize } from '../middleware/authMiddleware';
 
@@ -15,6 +16,8 @@ router.use(protect); // All org routes require authentication
 router.route('/')
   .get(getOrganizations)
   .post(authorize('ADMIN'), createOrganization);
+
+router.route('/my-network').get(getMyNetwork);
 
 router.route('/:id')
   .get(getOrganizationById)

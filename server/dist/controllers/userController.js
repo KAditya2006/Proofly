@@ -10,6 +10,7 @@ const Organization_1 = __importDefault(require("../models/Organization"));
 const errorHandler_1 = require("../middleware/errorHandler");
 const auditLogger_1 = require("../utils/auditLogger");
 const mongoose_1 = __importDefault(require("mongoose"));
+const emailService_1 = require("../utils/emailService");
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private/Admin
@@ -123,8 +124,9 @@ const createUser = async (req, res) => {
             }
         }
         const generatedEmployeeId = `${prefix}-${nextNum.toString().padStart(4, '0')}`;
+        const dummyPassword = (0, emailService_1.generateSecurePassword)(12);
         const salt = await bcryptjs_1.default.genSalt(10);
-        const passwordHash = await bcryptjs_1.default.hash(password, salt);
+        const passwordHash = await bcryptjs_1.default.hash(dummyPassword, salt);
         // Organization Context Logic
         let finalOrgId;
         if (role === 'ADMIN' || role === 'AUDITOR' || role === 'GROUP_ESG_TEAM') {
@@ -169,6 +171,8 @@ const createUser = async (req, res) => {
             entityId: user._id.toString(),
             after: { email: user.email, employeeId: user.employeeId, role: user.role, organizationId: user.organizationId }
         });
+        // Send Welcome Email async (don't block the response)
+        (0, emailService_1.sendWelcomeEmail)(user.email, { name: user.name, employeeId: user.employeeId, role: user.role }, dummyPassword);
         res.status(201).json({
             success: true,
             data: {

@@ -3,8 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteOrganization = exports.updateOrganization = exports.createOrganization = exports.getOrganizationById = exports.getOrganizations = void 0;
+exports.getMyNetwork = exports.deleteOrganization = exports.updateOrganization = exports.createOrganization = exports.getOrganizationById = exports.getOrganizations = void 0;
 const Organization_1 = __importDefault(require("../models/Organization"));
+const User_1 = __importDefault(require("../models/User"));
 // @desc    Get all organizations
 // @route   GET /api/organizations
 // @access  Private
@@ -182,3 +183,67 @@ const deleteOrganization = async (req, res) => {
     }
 };
 exports.deleteOrganization = deleteOrganization;
+// @desc    Get user's organizational network (parents and descendants with users)
+// @route   GET /api/organizations/my-network
+// @access  Private
+const getMyNetwork = async (req, res) => {
+    try {
+        if (!req.user || !req.user.organizationId) {
+            return res.status(400).json({ message: 'User does not belong to any organization' });
+        }
+        const [organizations, users] = await Promise.all([
+            Organization_1.default.find({ status: 'ACTIVE' }).lean(),
+            User_1.default.find({ status: 'ACTIVE' }).select('name role email employeeId organizationId').lean()
+        ]);
+        const myOrg = organizations.find((o) => o._id.toString() === req.user.organizationId.toString());
+        if (!myOrg) {
+            return res.status(404).json({ message: 'Organization not found' });
+        }
+        const orgsWithUsers = organizations.map((org) => ({
+            ...org,
+            users: users.filter((u) => u.organizationId?.toString() === org._id.toString())
+        }));
+        const parents = [];
+        let currentParentId = myOrg.parentId;
+        while (currentParentId) {
+            const parentOrg = orgsWithUsers.find((o) => o._id.toString() === currentParentId?.toString());
+            if (parentOrg) {
+                parents.push(parentOrg);
+                currentParentId = parentOrg.parentId;
+            }
+            else {
+                break;
+            }
+        }
+        const getDescendants = (parentId) => {
+            const children = orgsWithUsers.filter((o) => o.parentId?.toString() === parentId.toString());
+            let allDescendants = [...children];
+            for (const child of children) {
+                allDescendants = [...allDescendants, ...getDescendants(child._id)];
+            }
+            return allDescendants;
+        };
+        const descendants = getDescendants(myOrg._id);
+        const peers = users.filter((u) => u.organizationId?.toString() === myOrg._id.toString() && u._id.toString() !== req.user._id.toString());
+        res.json({
+            me: {
+                id: req.user._id,
+                name: req.user.name,
+                role: req.user.role,
+                email: req.user.email,
+                employeeId: req.user.employeeId
+            },
+            organization: {
+                ...myOrg,
+                users: peers
+            },
+            parents: parents.reverse(),
+            descendants
+        });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error fetching network' });
+    }
+};
+exports.getMyNetwork = getMyNetwork;

@@ -7,6 +7,8 @@ import LineageDrawer from '../components/LineageDrawer';
 import { useAuth } from '../context/AuthContext';
 import { PremiumLoader } from '../components/PremiumLoader';
 import { CircularProgress } from '../components/CircularProgress';
+import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import { FileDown, FileText as FilePdf } from 'lucide-react';
 
 const AnalyticsDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -87,8 +89,8 @@ const AnalyticsDashboard: React.FC = () => {
           <p className="page-subtitle mt-4 text-lg">Consolidated ESG performance and reporting readiness.</p>
         </div>
         
-        <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md p-3 rounded-full border border-white/60 shadow-sm">
-          <div className="flex items-center gap-2 px-4 border-r border-brand-coral/20">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md p-3 rounded-full border border-white/60 shadow-sm px-4">
             <Calendar className="h-5 w-5 text-brand-coral/70" strokeWidth={1.5} />
             <select 
               className="bg-transparent text-sm font-semibold text-brand-navy outline-none cursor-pointer tracking-wider uppercase"
@@ -99,6 +101,48 @@ const AnalyticsDashboard: React.FC = () => {
             </select>
           </div>
           
+          <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md p-2 rounded-full border border-white/60 shadow-sm">
+            <button 
+              onClick={() => window.print()}
+              className="flex items-center justify-center p-2 rounded-full bg-white text-brand-navy hover:text-brand-coral hover:bg-brand-coral/10 transition-colors shadow-sm"
+              title="Export as PDF"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </button>
+            <button 
+              onClick={() => {
+                if (!kpis.length) return;
+                
+                // Format for excel
+                const exportData = kpis.map(k => ({
+                  'Indicator Code': k.indicator.code,
+                  'Indicator Name': k.indicator.name,
+                  'Category': k.indicator.category,
+                  'Value': k.value,
+                  'Unit': k.indicator.unit,
+                  'Reporting Period': periods.find(p => p._id === selectedPeriod)?.name || selectedPeriod
+                }));
+                
+                exportToExcel(exportData, 'Proofly_Analytics_Export');
+              }}
+              className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-brand-teal/10 text-brand-teal hover:bg-brand-teal/20 transition-colors shadow-sm text-xs font-bold uppercase tracking-wider"
+              title="Export as Excel"
+            >
+              <FileDown className="w-4 h-4" />
+              <span>Excel</span>
+            </button>
+            <button 
+              onClick={() => {
+                exportToPDF('dashboard-export-area', 'Proofly_Analytics_Report');
+              }}
+              className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-brand-coral/10 text-brand-coral hover:bg-brand-coral/20 transition-colors shadow-sm text-xs font-bold uppercase tracking-wider"
+              title="Export as PDF"
+            >
+              <FilePdf className="w-4 h-4" />
+              <span>PDF</span>
+            </button>
+          </div>
+
           {(user?.role === 'ADMIN' || user?.role === 'GROUP_ESG_TEAM') && (
             <div className="flex items-center gap-2 px-4">
               <Layers className="h-5 w-5 text-brand-coral/70" strokeWidth={1.5} />
@@ -130,7 +174,7 @@ const AnalyticsDashboard: React.FC = () => {
       {loading ? (
         <PremiumLoader text="Aggregating data..." />
       ) : (
-        <>
+        <div id="dashboard-export-area" className="space-y-6">
           {/* Readiness Engine Summary */}
           {readiness && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -237,7 +281,7 @@ const AnalyticsDashboard: React.FC = () => {
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
 
       {/* Lineage Drawer */}

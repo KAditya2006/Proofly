@@ -83,6 +83,15 @@ const Login: React.FC = () => {
                 {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
               </button>
             </div>
+            <div className="flex justify-end mt-3">
+              <button 
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-xs font-semibold text-brand-navy hover:text-brand-coral hover:underline transition-colors uppercase tracking-wider"
+              >
+                Forgot Password?
+              </button>
+            </div>
           </div>
 
           {error && (

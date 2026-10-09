@@ -5,6 +5,7 @@ import Organization from '../models/Organization';
 import { AppError } from '../middleware/errorHandler';
 import { logAudit } from '../utils/auditLogger';
 import mongoose from 'mongoose';
+import { generateSecurePassword, sendWelcomeEmail } from '../utils/emailService';
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -127,8 +128,9 @@ export const createUser = async (req: any, res: ExpressRes) => {
     
     const generatedEmployeeId = `${prefix}-${nextNum.toString().padStart(4, '0')}`;
 
+    const dummyPassword = generateSecurePassword(12);
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const passwordHash = await bcrypt.hash(dummyPassword, salt);
 
     // Organization Context Logic
     let finalOrgId: mongoose.Types.ObjectId | undefined;
@@ -176,6 +178,9 @@ export const createUser = async (req: any, res: ExpressRes) => {
       entityId: user._id.toString(),
       after: { email: user.email, employeeId: user.employeeId, role: user.role, organizationId: user.organizationId }
     });
+
+    // Send Welcome Email async (don't block the response)
+    sendWelcomeEmail(user.email, { name: user.name, employeeId: user.employeeId, role: user.role }, dummyPassword);
 
     res.status(201).json({
       success: true,

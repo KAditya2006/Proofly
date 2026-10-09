@@ -1,5 +1,6 @@
 import { Request as ExpressReq, Response as ExpressRes } from 'express';
 import Organization from '../models/Organization';
+import User from '../models/User';
 
 // @desc    Get all organizations
 // @route   GET /api/organizations
@@ -186,5 +187,77 @@ export const deleteOrganization = async (req: any, res: ExpressRes) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error deleting organization' });
+  }
+};
+
+// @desc    Get user's organizational network (parents and descendants with users)
+// @route   GET /api/organizations/my-network
+// @access  Private
+export const getMyNetwork = async (req: any, res: ExpressRes) => {
+  try {
+    if (!req.user || !req.user.organizationId) {
+      return res.status(400).json({ message: 'User does not belong to any organization' });
+    }
+
+    const [organizations, users] = await Promise.all([
+      Organization.find({ status: 'ACTIVE' }).lean(),
+      User.find({ status: 'ACTIVE' }).select('name role email employeeId organizationId').lean()
+    ]);
+
+    const myOrg = organizations.find((o: any) => o._id.toString() === req.user.organizationId.toString());
+    
+    if (!myOrg) {
+       return res.status(404).json({ message: 'Organization not found' });
+    }
+
+    const orgsWithUsers = organizations.map((org: any) => ({
+      ...org,
+      users: users.filter((u: any) => u.organizationId?.toString() === org._id.toString())
+    }));
+
+    const parents = [];
+    let currentParentId = myOrg.parentId;
+    while (currentParentId) {
+       const parentOrg = orgsWithUsers.find((o: any) => o._id.toString() === currentParentId?.toString());
+       if (parentOrg) {
+         parents.push(parentOrg);
+         currentParentId = parentOrg.parentId;
+       } else {
+         break;
+       }
+    }
+
+    const getDescendants = (parentId: any): any[] => {
+       const children = orgsWithUsers.filter((o: any) => o.parentId?.toString() === parentId.toString());
+       let allDescendants = [...children];
+       for (const child of children) {
+          allDescendants = [...allDescendants, ...getDescendants(child._id)];
+       }
+       return allDescendants;
+    };
+
+    const descendants = getDescendants(myOrg._id);
+
+    const peers = users.filter((u: any) => u.organizationId?.toString() === myOrg._id.toString() && u._id.toString() !== req.user._id.toString());
+
+    res.json({
+      me: {
+        id: req.user._id,
+        name: req.user.name,
+        role: req.user.role,
+        email: req.user.email,
+        employeeId: req.user.employeeId
+      },
+      organization: {
+        ...myOrg,
+        users: peers
+      },
+      parents: parents.reverse(),
+      descendants
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching network' });
   }
 };

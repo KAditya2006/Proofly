@@ -16,6 +16,7 @@ import About from './pages/public/About';
 import Contact from './pages/public/Contact';
 import NotFound from './pages/public/NotFound';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import FirstLoginPasswordChange from './pages/FirstLoginPasswordChange';
 import Dashboard from './pages/Dashboard';
 import OrganizationPage from './pages/Organization';
@@ -40,6 +41,7 @@ const ReportBuilder = lazy(() => import('./pages/ReportBuilder'));
 import EvidenceIntelligence from './pages/EvidenceIntelligence';
 import TaskBoard from './pages/TaskBoard';
 import NotificationCenter from './pages/NotificationCenter';
+import MyNetwork from './pages/MyNetwork';
 import BulkUploadWorkspace from './pages/BulkUploadWorkspace';
 import ReportingPeriodWorkspace from './pages/ReportingPeriodWorkspace';
 import { AdminControlCenter } from './pages/AdminControlCenter';
@@ -69,6 +71,7 @@ const App: React.FC = () => {
           
           <Route path="/welcome" element={<Navigate to="/" replace />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/change-password" element={<FirstLoginPasswordChange />} />
           </Route>
@@ -103,6 +106,7 @@ const App: React.FC = () => {
             <Route path="notifications" element={<NotificationCenter />} />
             <Route path="bulk-upload" element={<BulkUploadWorkspace />} />
             <Route path="reporting-periods" element={<ReportingPeriodWorkspace />} />
+            <Route path="network" element={<MyNetwork />} />
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="admin" element={<AdminControlCenter />} />
               <Route path="admin/audit" element={<AuditSearch />} />

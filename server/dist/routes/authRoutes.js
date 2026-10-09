@@ -17,5 +17,6 @@ const authLimiter = (0, express_rate_limit_1.default)({
 });
 router.post('/login', authLimiter, authController_1.loginUser);
 router.post('/change-password', authMiddleware_1.protect, authController_1.changePassword);
+router.post('/forgot-password', authLimiter, authController_1.forgotPassword);
 router.get('/me', authMiddleware_1.protect, authController_1.getMe);
 exports.default = router;

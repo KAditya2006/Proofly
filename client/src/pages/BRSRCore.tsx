@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
+import { exportToPDF } from '../utils/exportUtils';
+import { FileText as FilePdf } from 'lucide-react';
 
 export default function BRSRCore() {
   const [data, setData] = useState<any>(null);
@@ -46,15 +48,28 @@ export default function BRSRCore() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div id="brsr-export-area" className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-serif font-semibold text-brand-navy">BRSR Core Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">Real-time status of critical BRSR Core KPIs.</p>
         </div>
-        <div className="bg-brand-blush border border-gray-200 px-6 py-3 rounded-lg shadow-sm text-center">
-          <div className="text-3xl font-bold text-brand-navy">{data.overallReadiness}%</div>
-          <div className="text-xs text-brand-charcoal font-medium uppercase tracking-wide">Overall Readiness</div>
+        <div className="flex items-center space-x-6">
+          <button 
+            onClick={() => {
+              exportToPDF('brsr-export-area', 'BRSR_Core_Report');
+            }}
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-brand-coral/10 text-brand-coral hover:bg-brand-coral/20 transition-colors shadow-sm text-sm font-bold uppercase tracking-wider"
+            title="Export as PDF"
+          >
+            <FilePdf className="w-5 h-5" />
+            <span>Export Report</span>
+          </button>
+          
+          <div className="bg-brand-blush border border-gray-200 px-6 py-3 rounded-lg shadow-sm text-center">
+            <div className="text-3xl font-bold text-brand-navy">{data.overallReadiness}%</div>
+            <div className="text-xs text-brand-charcoal font-medium uppercase tracking-wide">Overall Readiness</div>
+          </div>
         </div>
       </div>
 

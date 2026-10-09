@@ -35,7 +35,9 @@ const getProjects = async (req, res) => {
             // GROUP_ESG_TEAM, AUDITOR, ADMIN see all projects
         }
         // Populate organization names for the frontend
+        console.log('Project Query:', query);
         const total = await Project_1.default.countDocuments(query);
+        console.log('Total Projects found:', total);
         const projects = await Project_1.default.find(query)
             .populate('organizationId', 'name')
             .populate('businessUnitId', 'name')
@@ -44,6 +46,7 @@ const getProjects = async (req, res) => {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
+        console.log('Returned Projects:', projects.length);
         res.json({
             data: projects,
             pagination: {
