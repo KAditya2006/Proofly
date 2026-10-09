@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getDisclosures, getComplianceControls } from '../services/complianceService';
 import type { BRSRDisclosure, ComplianceControl } from '../services/complianceService';
-import { ShieldCheck, BookOpen, AlertCircle } from 'lucide-react';
+import { ShieldCheck, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const ComplianceDashboard: React.FC = () => {
   const [disclosures, setDisclosures] = useState<BRSRDisclosure[]>([]);

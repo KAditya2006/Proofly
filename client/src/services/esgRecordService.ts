@@ -18,7 +18,10 @@ export interface ESGRecord {
   status: 'DRAFT' | 'VALIDATION_FAILED' | 'SUBMITTED' | 'UNDER_REVIEW' | 'CORRECTION_REQUIRED' | 'APPROVED' | 'REJECTED';
   correctionReason?: string;
   submittedBy?: any;
+  submittedAt?: string;
   approvedBy?: any;
+  buApprovedAt?: string;
+  approvedAt?: string;
   createdBy?: any;
   updatedBy?: any;
   createdAt: string;

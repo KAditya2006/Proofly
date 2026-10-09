@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { ArrowLeft, Play, Settings, RefreshCw } from 'lucide-react';
+import { Play, Settings, RefreshCw } from 'lucide-react';
 
 interface Integration {
   _id: string;

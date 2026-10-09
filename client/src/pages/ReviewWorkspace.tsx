@@ -10,20 +10,12 @@ const ReviewWorkspace: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const [currentPeriod, setCurrentPeriod] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [reviewsData, periodRes] = await Promise.all([
-          getPendingReviews(),
-          import('../services/api').then(m => m.default.get('/reporting-periods'))
-        ]);
+        const reviewsData = await getPendingReviews();
         setReviews(reviewsData);
-        
-        const periods = periodRes.data;
-        const activePeriod = periods.find((p: any) => p.isCurrent) || periods[0];
-        setCurrentPeriod(activePeriod);
       } catch (err: any) {
         console.error('Error fetching data:', err);
         setError('Failed to load pending reviews. Please try again later.');

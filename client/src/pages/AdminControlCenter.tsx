@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Search,
   Users,
-  Settings,
   Briefcase,
   Building2,
   FileBarChart,

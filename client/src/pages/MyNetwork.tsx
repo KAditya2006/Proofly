@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { Network, Users, Building2, Layers, Briefcase, ChevronRight, UserCircle2 } from 'lucide-react';
 
 interface UserInfo {

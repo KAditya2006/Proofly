@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getRecordById } from '../services/esgRecordService';
 import { approveSubmission, requestCorrection, rejectSubmission, escalateSubmission } from '../services/reviewService';
 import { type ESGRecord } from '../services/esgRecordService';
-import { FileText, CheckCircle2, XCircle, AlertCircle, ArrowLeft, Download, Send, Eye } from 'lucide-react';
+import { FileText, CheckCircle2, XCircle, AlertCircle, Download, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const ReviewDetail: React.FC = () => {
